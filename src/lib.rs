@@ -260,10 +260,7 @@ mod tests {
     fn from_args_parse_error() {
         let args = ["-n", "not-a-number"];
         let err = ParseInt::from_args(args.into_iter()).unwrap_err();
-        assert_eq!(
-            err,
-            Error::InvalidOption("failed to parse value for option 'num'")
-        );
+        assert_eq!(err, Error::ParseError("num"));
     }
 
     // ── error-path tests ────────────────────────────────────────────
@@ -297,10 +294,7 @@ mod tests {
         let args = ["-n", "not-a-number"];
         let mut options = getargs::Options::new(args.into_iter());
         let err = ParseInt::parse(&mut options).unwrap_err();
-        assert_eq!(
-            err,
-            Error::InvalidOption("failed to parse value for option 'num'")
-        );
+        assert_eq!(err, Error::ParseError("num"));
     }
 
     #[test]
@@ -308,7 +302,7 @@ mod tests {
         let args = ["input", "--bogus"];
         let mut options = getargs::Options::new(args.into_iter());
         let err = NoOptions::parse(&mut options).unwrap_err();
-        assert_eq!(err, Error::InvalidOption("unknown option"));
+        assert_eq!(err, Error::UnknownOption);
     }
 
     #[test]
@@ -316,7 +310,7 @@ mod tests {
         let args = ["input", "-z"];
         let mut options = getargs::Options::new(args.into_iter());
         let err = NoOptions::parse(&mut options).unwrap_err();
-        assert_eq!(err, Error::InvalidOption("unknown option"));
+        assert_eq!(err, Error::UnknownOption);
     }
 
     #[test]
@@ -352,10 +346,23 @@ mod tests {
     }
 
     #[test]
-    fn error_display_invalid_option() {
+    fn error_display_unknown_option() {
+        assert_eq!(alloc::format!("{}", Error::UnknownOption), "Unknown option");
+    }
+
+    #[test]
+    fn error_display_missing_option_value() {
         assert_eq!(
-            alloc::format!("{}", Error::InvalidOption("unknown option")),
-            "unknown option"
+            alloc::format!("{}", Error::MissingOptionValue("output")),
+            "Option 'output' requires a value"
+        );
+    }
+
+    #[test]
+    fn error_display_parse_error() {
+        assert_eq!(
+            alloc::format!("{}", Error::ParseError("port")),
+            "Failed to parse value for 'port'"
         );
     }
 

@@ -82,8 +82,14 @@ fn handle_error(err: Error) {
         Error::MissingPositionalArgument(name) => {
             eprintln!("Missing required argument: --{name}");
         }
-        Error::InvalidOption(msg) => {
-            eprintln!("{}", msg);
+        Error::UnknownOption => {
+            eprintln!("Unknown option");
+        }
+        Error::MissingOptionValue(name) => {
+            eprintln!("Option '{name}' requires a value");
+        }
+        Error::ParseError(name) => {
+            eprintln!("Failed to parse value for '{name}'");
         }
         Error::InvalidNumberOfArguments => {
             eprintln!("Too many positional arguments provided");
@@ -92,11 +98,13 @@ fn handle_error(err: Error) {
 }
 ```
 
-| Variant                                   | Cause                                                                                                            |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `MissingPositionalArgument(&'static str)` | A required named or positional argument was not provided on the command line.                                    |
-| `InvalidOption(&'static str)`             | An option was unrecognised, missing a value, or its value could not be parsed. The string describes the problem. |
-| `InvalidNumberOfArguments`                | More positional arguments were provided than the struct defines.                                                 |
+| Variant                                   | Cause                                                                                        |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `MissingPositionalArgument(&'static str)` | A required named or positional argument was not provided on the command line.                |
+| `UnknownOption`                           | An unrecognised option was given (e.g. `--bogus` or `-z`).                                   |
+| `MissingOptionValue(&'static str)`        | A named option was given without a value (e.g. `--output` at end of args).                   |
+| `ParseError(&'static str)`                | A value could not be parsed into the target field type (e.g. `"abc"` for a `u32`).           |
+| `InvalidNumberOfArguments`                | More positional arguments were provided than the struct defines.                             |
 
 ## Full Example
 

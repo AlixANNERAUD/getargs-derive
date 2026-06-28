@@ -245,16 +245,15 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                 quote! {
                     let value = options
                         .value()
-                        .map_err(|_| getargs_derive::Error::InvalidOption("option requires a value"))?;
+                        .map_err(|_| getargs_derive::Error::MissingOptionValue(#long_name))?;
                     #value_ident = value;
                 }
             } else {
-                let err_msg = format!("failed to parse value for option '{}'", long_name);
                 quote! {
                     let value = options
                         .value()
-                        .map_err(|_| getargs_derive::Error::InvalidOption("option requires a value"))?;
-                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::InvalidOption(#err_msg))?;
+                        .map_err(|_| getargs_derive::Error::MissingOptionValue(#long_name))?;
+                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::ParseError(#long_name))?;
                 }
             };
 
@@ -291,12 +290,8 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                     #value_ident = value;
                 }
             } else {
-                let err_msg = format!(
-                    "failed to parse value for positional argument '{}'",
-                    field_str
-                );
                 quote! {
-                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::InvalidOption(#err_msg))?;
+                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::ParseError(#field_str))?;
                 }
             };
 
@@ -350,11 +345,11 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                 #(#initializers)*
                 let mut __positional_index = 0_usize;
 
-                while let Some(argument) = options.next_arg().map_err(|_| getargs_derive::Error::InvalidOption("malformed argument"))? {
+                while let Some(argument) = options.next_arg().map_err(|_| getargs_derive::Error::UnknownOption)? {
                     match argument {
                         #(#option_match_arms)*
                         #positional_handler
-                        _ => return Err(getargs_derive::Error::InvalidOption("unknown option")),
+                        _ => return Err(getargs_derive::Error::UnknownOption),
                     }
                 }
 

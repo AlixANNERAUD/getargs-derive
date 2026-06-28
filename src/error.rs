@@ -8,11 +8,22 @@ pub enum Error {
     /// or `"verbose"` for a named option).
     MissingPositionalArgument(&'static str),
 
-    /// An option was unrecognised, missing a value, or its value could not be parsed.
+    /// An unrecognised option was given on the command line.
     ///
-    /// The string describes what went wrong (e.g. `"unknown option"`, `"option requires a value"`,
-    /// or `"failed to parse value for --port"`).
-    InvalidOption(&'static str),
+    /// This includes both unknown short flags (`-z`) and long flags (`--bogus`).
+    UnknownOption,
+
+    /// A named option was given but no value was provided.
+    ///
+    /// The string is the option name (e.g. `"output"` or `"-j"`).
+    /// For example, `--output` at the end of the command line without a following value.
+    MissingOptionValue(&'static str),
+
+    /// A value could not be parsed into the target field type.
+    ///
+    /// The string is the field or option name (e.g. `"num"` or `"port"`).
+    /// For example, providing `"abc"` for a `u32` field.
+    ParseError(&'static str),
 
     /// More positional arguments were provided than the struct defines.
     InvalidNumberOfArguments,
@@ -24,9 +35,11 @@ impl core::fmt::Display for Error {
             Error::MissingPositionalArgument(arg) => {
                 write!(f, "Missing required argument: '{}'", arg)
             }
-            Error::InvalidOption(msg) => {
-                write!(f, "{}", msg)
+            Error::UnknownOption => write!(f, "Unknown option"),
+            Error::MissingOptionValue(name) => {
+                write!(f, "Option '{}' requires a value", name)
             }
+            Error::ParseError(name) => write!(f, "Failed to parse value for '{}'", name),
             Error::InvalidNumberOfArguments => {
                 write!(f, "Invalid number of arguments provided")
             }
