@@ -1,10 +1,19 @@
+/// Errors that can occur when parsing CLI arguments with [`GetArgs`](crate::GetArgs).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
-    /// A required positional or optional argument was missing.
+    /// A required positional or named argument was not provided on the command line.
+    ///
+    /// The string is the name of the missing argument (e.g. `"input"` for a positional,
+    /// or `"verbose"` for a named option).
     MissingPositionalArgument(&'static str),
-    /// An option was formatted incorrectly, or its value failed to parse.
+
+    /// An unrecognised option was given, or a value could not be parsed into the target field type.
+    ///
+    /// This covers both unknown flags like `--bogus` and parse failures such as
+    /// providing `"abc"` for a `u32` field.
     InvalidOption,
-    /// The user provided more positional arguments than the struct accommodates.
+
+    /// More positional arguments were provided than the struct defines.
     InvalidNumberOfArguments,
 }
 
