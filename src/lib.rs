@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
+#![deny(missing_docs)]
 
 #[doc(hidden)]
 extern crate self as getargs_derive;
@@ -12,7 +13,7 @@ pub use getargs_derive_macros::GetArgs;
 
 #[cfg(test)]
 mod tests {
-    #![allow(dead_code)]
+    #![allow(dead_code, missing_docs)]
     extern crate alloc;
     use super::*;
     use core::num::NonZeroU32;
@@ -271,7 +272,10 @@ mod tests {
         let args = ["-n", "not-a-number"];
         let mut options = getargs::Options::new(args.into_iter());
         let err = ParseInt::parse(&mut options).unwrap_err();
-        assert_eq!(err, Error::InvalidOption);
+        assert_eq!(
+            err,
+            Error::InvalidOption("failed to parse value for option 'num'")
+        );
     }
 
     #[test]
@@ -279,7 +283,7 @@ mod tests {
         let args = ["input", "--bogus"];
         let mut options = getargs::Options::new(args.into_iter());
         let err = NoOptions::parse(&mut options).unwrap_err();
-        assert_eq!(err, Error::InvalidOption);
+        assert_eq!(err, Error::InvalidOption("unknown option"));
     }
 
     #[test]
@@ -287,7 +291,7 @@ mod tests {
         let args = ["input", "-z"];
         let mut options = getargs::Options::new(args.into_iter());
         let err = NoOptions::parse(&mut options).unwrap_err();
-        assert_eq!(err, Error::InvalidOption);
+        assert_eq!(err, Error::InvalidOption("unknown option"));
     }
 
     #[test]
@@ -325,8 +329,8 @@ mod tests {
     #[test]
     fn error_display_invalid_option() {
         assert_eq!(
-            alloc::format!("{}", Error::InvalidOption),
-            "Invalid option or failed to parse option value"
+            alloc::format!("{}", Error::InvalidOption("unknown option")),
+            "unknown option"
         );
     }
 
