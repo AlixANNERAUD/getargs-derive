@@ -1,5 +1,8 @@
 # getargs-derive
 
+[![crates.io](https://img.shields.io/crates/v/getargs-derive.svg)](https://crates.io/crates/getargs-derive)
+[![docs.rs](https://img.shields.io/docsrs/getargs-derive)](https://docs.rs/getargs-derive)
+
 A `#[derive(GetArgs)]` macro for the [`getargs`](https://crates.io/crates/getargs) crate. Automatically generates argument parsing code for your structs, mapping CLI arguments to named fields with minimal boilerplate.
 
 ## Installation
@@ -76,8 +79,8 @@ fn handle_error(err: Error) {
         Error::MissingPositionalArgument(name) => {
             eprintln!("Missing required argument: --{name}");
         }
-        Error::InvalidOption => {
-            eprintln!("Invalid option or failed to parse option value");
+        Error::InvalidOption(msg) => {
+            eprintln!("{}", msg);
         }
         Error::InvalidNumberOfArguments => {
             eprintln!("Too many positional arguments provided");
@@ -89,7 +92,7 @@ fn handle_error(err: Error) {
 | Variant                                   | Cause                                                                                        |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `MissingPositionalArgument(&'static str)` | A required named or positional argument was not provided on the command line.                |
-| `InvalidOption`                           | An unrecognised option was given, or a value could not be parsed into the target field type. |
+| `InvalidOption(&'static str)`             | An option was unrecognised, missing a value, or its value could not be parsed. The string describes the problem. |
 | `InvalidNumberOfArguments`                | More positional arguments were provided than the struct defines.                             |
 
 ## Full Example
