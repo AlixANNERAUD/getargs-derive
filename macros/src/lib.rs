@@ -1,3 +1,8 @@
+#![deny(missing_docs)]
+//! Internal proc-macro implementation for `getargs-derive`.
+//!
+//! This crate is not meant to be used directly. Re-exported via `getargs_derive::GetArgs`.
+
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
@@ -240,15 +245,16 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                 quote! {
                     let value = options
                         .value()
-                        .map_err(|_| getargs_derive::Error::MissingPositionalArgument(#long_name))?;
+                        .map_err(|_| getargs_derive::Error::InvalidOption("option requires a value"))?;
                     #value_ident = value;
                 }
             } else {
+                let err_msg = format!("failed to parse value for option '{}'", long_name);
                 quote! {
                     let value = options
                         .value()
-                        .map_err(|_| getargs_derive::Error::MissingPositionalArgument(#long_name))?;
-                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::InvalidOption)?;
+                        .map_err(|_| getargs_derive::Error::InvalidOption("option requires a value"))?;
+                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::InvalidOption(#err_msg))?;
                 }
             };
 
@@ -285,8 +291,12 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                     #value_ident = value;
                 }
             } else {
+                let err_msg = format!(
+                    "failed to parse value for positional argument '{}'",
+                    field_str
+                );
                 quote! {
-                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::InvalidOption)?;
+                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::InvalidOption(#err_msg))?;
                 }
             };
 
@@ -337,11 +347,11 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                 #(#initializers)*
                 let mut __positional_index = 0_usize;
 
-                while let Some(argument) = options.next_arg().map_err(|_| getargs_derive::Error::InvalidOption)? {
+                while let Some(argument) = options.next_arg().map_err(|_| getargs_derive::Error::InvalidOption("malformed argument"))? {
                     match argument {
                         #(#option_match_arms)*
                         #positional_handler
-                        _ => return Err(getargs_derive::Error::InvalidOption),
+                        _ => return Err(getargs_derive::Error::InvalidOption("unknown option")),
                     }
                 }
 
