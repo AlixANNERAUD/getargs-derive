@@ -6,6 +6,7 @@ description = "Internal proc-macro implementation for getargs-derive"
 license = "MIT"
 repository = "https://github.com/alix-anneraud/getargs-derive"
 publish = false
+authors = ["Alix ANNERAUD <alix@anneraud.fr>"]
 
 [dependencies]
 syn = { version = "2.0", features = ["full"] }

@@ -139,3 +139,7 @@ This crate is `#![no_std]`-compatible. It only depends on `core` and the `getarg
 ## License
 
 Licensed under the <a href="LICENSE">MIT License</a>.
+
+---
+
+Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
