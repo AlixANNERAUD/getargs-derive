@@ -1,6 +1,8 @@
-//! This crate provides a derive macro for the `getargs` crate, allowing you to easily generate argument parsing code for your structs.
-
+#![doc = include_str!("../README.md")]
 #![no_std]
+
+#[doc(hidden)]
+extern crate self as getargs_derive;
 
 mod error;
 
