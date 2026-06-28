@@ -1,4 +1,5 @@
 /// Errors that can occur when parsing CLI arguments with [`GetArgs`](crate::GetArgs).
+#[must_use]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     /// A required positional or named argument was not provided on the command line.
@@ -7,11 +8,11 @@ pub enum Error {
     /// or `"verbose"` for a named option).
     MissingPositionalArgument(&'static str),
 
-    /// An unrecognised option was given, or a value could not be parsed into the target field type.
+    /// An option was unrecognised, missing a value, or its value could not be parsed.
     ///
-    /// This covers both unknown flags like `--bogus` and parse failures such as
-    /// providing `"abc"` for a `u32` field.
-    InvalidOption,
+    /// The string describes what went wrong (e.g. `"unknown option"`, `"option requires a value"`,
+    /// or `"failed to parse value for --port"`).
+    InvalidOption(&'static str),
 
     /// More positional arguments were provided than the struct defines.
     InvalidNumberOfArguments,
@@ -23,8 +24,8 @@ impl core::fmt::Display for Error {
             Error::MissingPositionalArgument(arg) => {
                 write!(f, "Missing required argument: '{}'", arg)
             }
-            Error::InvalidOption => {
-                write!(f, "Invalid option or failed to parse option value")
+            Error::InvalidOption(msg) => {
+                write!(f, "{}", msg)
             }
             Error::InvalidNumberOfArguments => {
                 write!(f, "Invalid number of arguments provided")
