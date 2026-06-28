@@ -339,6 +339,9 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl #impl_generics #name #ty_generics #where_clause {
+            /// Parse CLI arguments from an iterator, using `getargs::Options`.
+            ///
+            /// This is the low-level method. Prefer [`from_args`](Self::from_args) for convenience.
             pub fn parse<'__getargs, I>(options: &mut getargs::Options<&'__getargs str, I>) -> core::result::Result<Self, getargs_derive::Error>
             where
                 I: Iterator<Item = &'__getargs str>,
@@ -360,6 +363,25 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                 Ok(Self {
                     #(#field_builds),*
                 })
+            }
+
+            /// Parse CLI arguments directly from an iterator.
+            ///
+            /// Convenience wrapper that creates a `getargs::Options` internally
+            /// and calls [`parse`](Self::parse).
+            ///
+            /// # Example
+            ///
+            /// ```ignore
+            /// let params = MyStruct::from_args(std::env::args().skip(1))?;
+            /// ```
+            pub fn from_args<'__getargs, I>(iter: I) -> core::result::Result<Self, getargs_derive::Error>
+            where
+                I: Iterator<Item = &'__getargs str>,
+                #('__getargs: #lifetime_params,)*
+            {
+                let mut options = getargs::Options::new(iter);
+                Self::parse(&mut options)
             }
         }
     };

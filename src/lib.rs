@@ -241,6 +241,31 @@ mod tests {
         assert!(params.verbose);
     }
 
+    #[test]
+    fn from_args_convenience_method() {
+        let args = ["value1", "--bool-field"];
+        let params = BasicPositionalFlag::from_args(args.into_iter()).unwrap();
+        assert_eq!(params.positional_field, "value1");
+        assert!(params.bool_field);
+    }
+
+    #[test]
+    fn from_args_empty_defaults() {
+        let args: [&str; 0] = [];
+        let params = WithDefault::from_args(args.into_iter()).unwrap();
+        assert_eq!(params.name, "fallback");
+    }
+
+    #[test]
+    fn from_args_parse_error() {
+        let args = ["-n", "not-a-number"];
+        let err = ParseInt::from_args(args.into_iter()).unwrap_err();
+        assert_eq!(
+            err,
+            Error::InvalidOption("failed to parse value for option 'num'")
+        );
+    }
+
     // ── error-path tests ────────────────────────────────────────────
 
     #[test]

@@ -35,14 +35,16 @@ struct Cli<'a> {
 
 # fn main() -> Result<(), getargs_derive::Error> {
 let args = ["input.txt", "--verbose"];
-let mut options = getargs::Options::new(args.into_iter());
-let cli = Cli::parse(&mut options)?;
+let cli = Cli::from_args(args.into_iter())?;
 assert_eq!(cli.input, "input.txt");
 assert!(cli.verbose);
 assert_eq!(cli.output, "output.txt");
 # Ok(())
 # }
 ```
+
+The `from_args` method takes any iterator of `&str` and handles `getargs::Options` internally.
+If you need more control (e.g. reusing an existing `Options`), use `parse` directly.
 
 ## Attribute Reference
 
@@ -120,8 +122,7 @@ struct Config<'a> {
 
 # fn main() -> Result<(), getargs_derive::Error> {
 let args = ["in.txt", "out.txt", "--verbose", "-j8", "--mode=deep"];
-let mut options = getargs::Options::new(args.into_iter());
-let config = Config::parse(&mut options)?;
+let config = Config::from_args(args.into_iter())?;
 assert_eq!(config.input, "in.txt");
 assert_eq!(config.output, "out.txt");
 assert!(config.verbose);
