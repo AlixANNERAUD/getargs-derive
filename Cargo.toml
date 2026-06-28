@@ -2,6 +2,11 @@
 name = "getargs-derive"
 version = "0.1.0"
 edition = "2024"
+description = "A derive macro for the getargs crate — auto-generate CLI argument parsing for your structs"
+license = "MIT"
+repository = "https://github.com/alix-anneraud/getargs-derive"
+keywords = ["cli", "arguments", "args", "parse", "derive"]
+categories = ["command-line-interface"]
 
 [dependencies]
 getargs-derive-macros = { path = "./macros" }
