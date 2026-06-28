@@ -1,0 +1,10 @@
+[package]
+name = "getargs-derive"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+getargs-derive-macros = { path = "./macros" }
+
+[workspace]
+members = ["macros"]
