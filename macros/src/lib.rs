@@ -123,6 +123,15 @@ fn parse_field_config(field: &Field) -> syn::Result<FieldConfig> {
     Ok(config)
 }
 
+/// Derive macro for the [`getargs`](https://crates.io/crates/getargs) crate.
+///
+/// Generates a `parse` method on your struct that consumes CLI arguments via
+/// `getargs::Options` and populates the struct's fields.
+///
+/// # Attribute syntax
+///
+/// See the [crate-level documentation](getargs_derive) for a full reference of
+/// supported `#[arg(...)]` attributes.
 #[proc_macro_derive(GetArgs, attributes(arg, default))]
 pub fn derive_get_args(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -231,15 +240,15 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                 quote! {
                     let value = options
                         .value()
-                        .map_err(|_| crate::Error::MissingPositionalArgument(#long_name))?;
+                        .map_err(|_| getargs_derive::Error::MissingPositionalArgument(#long_name))?;
                     #value_ident = value;
                 }
             } else {
                 quote! {
                     let value = options
                         .value()
-                        .map_err(|_| crate::Error::MissingPositionalArgument(#long_name))?;
-                    #value_ident = value.parse().map_err(|_| crate::Error::InvalidOption)?;
+                        .map_err(|_| getargs_derive::Error::MissingPositionalArgument(#long_name))?;
+                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::InvalidOption)?;
                 }
             };
 
@@ -258,7 +267,7 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
             if is_required {
                 required_checks.push(quote! {
                     if !#seen_ident {
-                        return Err(crate::Error::MissingPositionalArgument(#long_name));
+                        return Err(getargs_derive::Error::MissingPositionalArgument(#long_name));
                     }
                 });
             }
@@ -277,7 +286,7 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                 }
             } else {
                 quote! {
-                    #value_ident = value.parse().map_err(|_| crate::Error::InvalidOption)?;
+                    #value_ident = value.parse().map_err(|_| getargs_derive::Error::InvalidOption)?;
                 }
             };
 
@@ -291,7 +300,7 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
             if is_required {
                 required_checks.push(quote! {
                     if !#seen_ident {
-                        return Err(crate::Error::MissingPositionalArgument(#field_str));
+                        return Err(getargs_derive::Error::MissingPositionalArgument(#field_str));
                     }
                 });
             }
@@ -303,7 +312,7 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
     let positional_handler = if positional_match_arms.is_empty() {
         quote! {
             getargs::Arg::Positional(_) => {
-                return Err(crate::Error::InvalidNumberOfArguments);
+                return Err(getargs_derive::Error::InvalidNumberOfArguments);
             }
         }
     } else {
@@ -311,7 +320,7 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
             getargs::Arg::Positional(value) => {
                 match __positional_index {
                     #(#positional_match_arms)*
-                    _ => return Err(crate::Error::InvalidNumberOfArguments),
+                    _ => return Err(getargs_derive::Error::InvalidNumberOfArguments),
                 }
                 __positional_index += 1;
             }
@@ -320,7 +329,7 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl #impl_generics #name #ty_generics #where_clause {
-            pub fn parse<'__getargs, I>(options: &mut getargs::Options<&'__getargs str, I>) -> core::result::Result<Self, crate::Error>
+            pub fn parse<'__getargs, I>(options: &mut getargs::Options<&'__getargs str, I>) -> core::result::Result<Self, getargs_derive::Error>
             where
                 I: Iterator<Item = &'__getargs str>,
                 #('__getargs: #lifetime_params,)*
@@ -328,11 +337,11 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
                 #(#initializers)*
                 let mut __positional_index = 0_usize;
 
-                while let Some(argument) = options.next_arg().map_err(|_| crate::Error::InvalidOption)? {
+                while let Some(argument) = options.next_arg().map_err(|_| getargs_derive::Error::InvalidOption)? {
                     match argument {
                         #(#option_match_arms)*
                         #positional_handler
-                        _ => return Err(crate::Error::InvalidOption),
+                        _ => return Err(getargs_derive::Error::InvalidOption),
                     }
                 }
 
