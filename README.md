@@ -2,6 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/getargs-derive.svg)](https://crates.io/crates/getargs-derive)
 [![docs.rs](https://img.shields.io/docsrs/getargs-derive)](https://docs.rs/getargs-derive)
+[![codecov](https://codecov.io/github/AlixANNERAUD/getargs-derive/graph/badge.svg?token=0C27GIS0BK)](https://codecov.io/github/AlixANNERAUD/getargs-derive)
 
 A `#[derive(GetArgs)]` macro for the [`getargs`](https://crates.io/crates/getargs) crate. Automatically generates argument parsing code for your structs, mapping CLI arguments to named fields with minimal boilerplate.
 
@@ -89,11 +90,11 @@ fn handle_error(err: Error) {
 }
 ```
 
-| Variant                                   | Cause                                                                                        |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `MissingPositionalArgument(&'static str)` | A required named or positional argument was not provided on the command line.                |
+| Variant                                   | Cause                                                                                                            |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `MissingPositionalArgument(&'static str)` | A required named or positional argument was not provided on the command line.                                    |
 | `InvalidOption(&'static str)`             | An option was unrecognised, missing a value, or its value could not be parsed. The string describes the problem. |
-| `InvalidNumberOfArguments`                | More positional arguments were provided than the struct defines.                             |
+| `InvalidNumberOfArguments`                | More positional arguments were provided than the struct defines.                                                 |
 
 ## Full Example
 
