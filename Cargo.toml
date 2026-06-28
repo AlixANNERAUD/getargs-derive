@@ -6,5 +6,8 @@ edition = "2024"
 [dependencies]
 getargs-derive-macros = { path = "./macros" }
 
+[dev-dependencies]
+getargs = { version = "0.5" }
+
 [workspace]
 members = ["macros"]
