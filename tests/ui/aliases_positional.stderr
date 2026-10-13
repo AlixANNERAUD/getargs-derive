@@ -1,0 +1,5 @@
+error: aliases require a named option; add `short` and/or `long`, e.g. `#[arg(long, alias = "other")]`
+ --> tests/ui/aliases_positional.rs:5:19
+  |
+5 |     #[arg(alias = "file")]
+  |                   ^^^^^^

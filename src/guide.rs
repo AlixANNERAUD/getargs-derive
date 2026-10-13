@@ -9,6 +9,10 @@ pub mod attributes {}
 pub mod actions {}
 
 #[doc = include_str!("../docs/rustdoc-links.md")]
+#[doc = include_str!("../docs/aliases.md")]
+pub mod aliases {}
+
+#[doc = include_str!("../docs/rustdoc-links.md")]
 #[doc = include_str!("../docs/defaults.md")]
 pub mod defaults {}
 

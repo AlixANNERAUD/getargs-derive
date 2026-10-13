@@ -12,7 +12,13 @@ use syn::{DeriveInput, GenericParam};
 fn long_names<'a>(container: &ContainerModel, fields: &'a [FieldModel]) -> Vec<&'a str> {
     let mut long_names: Vec<&str> = fields
         .iter()
-        .filter_map(|field| field.long.as_deref())
+        .flat_map(|field| {
+            field
+                .long
+                .iter()
+                .chain(field.long_aliases.iter().map(|alias| &alias.name))
+                .map(String::as_str)
+        })
         .collect();
     if !container.disable_help_flag {
         long_names.push("help");

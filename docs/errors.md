@@ -56,7 +56,7 @@ The `&'static str` names are written as in the generated help: `<VALUE_NAME>` fo
 when there is none) followed by `<VALUE_NAME>` for a named option (`--jobs <JOBS>`, `-p <PORT>`). `Opt<'a>` is the option as the user wrote it,
 `Opt::Short('z')` or `Opt::Long("bogus")`, and displays with its dashes.
 
-Suggestions are computed without allocation against the struct's long option names, including `help` unless the help flag is disabled and `version`
+Suggestions are computed without allocation against the struct's long option names and [long aliases][guide-aliases], including `help` unless the help flag is disabled and `version`
 when the version flag is enabled, using the edit distance with transpositions: a name is suggested when the distance is at most a third of the longer
 of the two names. Short options never get suggestions.
 
@@ -81,6 +81,7 @@ The `Error` enum was redesigned to report the offending argument:
 
 `Display` messages now follow Clap's wording instead of the previous capitalised messages.
 
+[guide-aliases]: aliases.md
 [guide-help]: help.md
 [guide-relations]: relations.md
 [guide-version]: version.md
