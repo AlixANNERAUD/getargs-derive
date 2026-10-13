@@ -1,6 +1,14 @@
 use crate::{ArgInfo, Error};
 use core::cell::Cell;
 
+pub use crate::input::{
+    Arg, Input, arg, bytes, opt, text, unexpected_argument, unknown_subcommand, unnamed,
+};
+#[cfg(feature = "std")]
+pub use crate::os::{OsArg, args_os, os_str, path};
+#[cfg(feature = "std")]
+pub use std::ffi::OsStr;
+
 /// One argument of the generated help: its labels, descriptions and placement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HelpEntry {
@@ -63,7 +71,7 @@ impl HelpEntry {
 #[derive(Debug, Clone, Copy)]
 pub struct Context<'a, 'r> {
     /// The last raw argument, used to recognise negative numbers.
-    pub raw: Option<&'r Cell<Option<&'a str>>>,
+    pub raw: Option<&'r Cell<Option<&'a [u8]>>>,
     /// Whether a `last` positional exists, so that arguments after `--` skip the other positionals.
     pub last: bool,
     /// Whether every option and positional accepts negative numbers.
@@ -78,7 +86,7 @@ pub struct Context<'a, 'r> {
 
 impl<'a, 'r> Context<'a, 'r> {
     /// The context of the struct being parsed.
-    pub const fn new(raw: Option<&'r Cell<Option<&'a str>>>) -> Self {
+    pub const fn new(raw: Option<&'r Cell<Option<&'a [u8]>>>) -> Self {
         Context {
             raw,
             last: false,
@@ -125,13 +133,13 @@ impl<'a, 'r> Context<'a, 'r> {
 
 /// Offers an argument to the `global` options of the parents of a subcommand. Returns `Ok(true)`
 /// when one of them consumed it.
-pub type Globals<'g, 'a, I> = dyn FnMut(getargs::Arg<&'a str>, &mut getargs::Options<&'a str, I>) -> Result<bool, Error<'a>>
-    + 'g;
+pub type Globals<'g, 'a, A, I> =
+    dyn FnMut(Arg<'a, A>, &mut getargs::Options<A, I>) -> Result<bool, Error<'a>> + 'g;
 
 /// The [`Globals`] of a command without parents.
-pub fn no_globals<'a, I: Iterator<Item = &'a str>>(
-    _argument: getargs::Arg<&'a str>,
-    _options: &mut getargs::Options<&'a str, I>,
+pub fn no_globals<'a, A: Input<'a>, I: Iterator<Item = A>>(
+    _argument: Arg<'a, A>,
+    _options: &mut getargs::Options<A, I>,
 ) -> Result<bool, Error<'a>> {
     Ok(false)
 }
@@ -175,20 +183,20 @@ pub trait Args<'a>: Sized {
 
     /// Offers one argument to the struct. Returns `Ok(true)` when it was consumed, `Ok(false)`
     /// when the struct does not handle it.
-    fn try_arg<I: Iterator<Item = &'a str>>(
+    fn try_arg<A: Input<'a>, I: Iterator<Item = A>>(
         state: &mut Self::State,
-        argument: getargs::Arg<&'a str>,
-        options: &mut getargs::Options<&'a str, I>,
+        argument: Arg<'a, A>,
+        options: &mut getargs::Options<A, I>,
         context: Context<'a, '_>,
-        globals: &mut Globals<'_, 'a, I>,
+        globals: &mut Globals<'_, 'a, A, I>,
     ) -> Result<bool, Error<'a>>;
 
     /// Offers one argument given after a subcommand to the `global` options of the struct,
     /// flattened structs included. Returns `Ok(true)` when it was consumed.
-    fn try_global<I: Iterator<Item = &'a str>>(
+    fn try_global<A: Input<'a>, I: Iterator<Item = A>>(
         state: &mut Self::State,
-        argument: getargs::Arg<&'a str>,
-        options: &mut getargs::Options<&'a str, I>,
+        argument: Arg<'a, A>,
+        options: &mut getargs::Options<A, I>,
         context: Context<'a, '_>,
     ) -> Result<bool, Error<'a>>;
 
@@ -222,11 +230,11 @@ pub trait Subcommand<'a>: Sized {
 
     /// Parses the rest of the command line as the subcommand called `name`. Returns `Ok(None)`
     /// when no subcommand has this name or alias.
-    fn try_command<I: Iterator<Item = &'a str>>(
+    fn try_command<A: Input<'a>, I: Iterator<Item = A>>(
         name: &'a str,
-        options: &mut getargs::Options<&'a str, I>,
+        options: &mut getargs::Options<A, I>,
         context: Context<'a, '_>,
-        globals: &mut Globals<'_, 'a, I>,
+        globals: &mut Globals<'_, 'a, A, I>,
     ) -> Result<Option<Self::State>, Error<'a>>;
 
     /// Checks the arguments of the selected subcommand and builds the variant.
@@ -369,29 +377,28 @@ pub const fn commands_use_long(commands: &[CommandEntry], long: &str) -> bool {
 }
 
 /// Reads the next argument, converting the errors of `getargs`.
-pub fn next_arg<'a, I: Iterator<Item = &'a str>>(
-    options: &mut getargs::Options<&'a str, I>,
-) -> Result<Option<getargs::Arg<&'a str>>, Error<'a>> {
-    options.next_arg().map_err(|error| match error {
-        getargs::Error::DoesNotRequireValue(getargs::Opt::Short(short)) => {
-            Error::UnexpectedValue(crate::Opt::Short(short))
+pub fn next_arg<'a, A: Input<'a>, I: Iterator<Item = A>>(
+    options: &mut getargs::Options<A, I>,
+) -> Result<Option<Arg<'a, A>>, Error<'a>> {
+    match options.next_arg() {
+        Ok(Some(argument)) => arg(argument).map(Some),
+        Ok(None) => Ok(None),
+        Err(getargs::Error::DoesNotRequireValue(option)) => {
+            Err(Error::UnexpectedValue(opt(option)?))
         }
-        getargs::Error::DoesNotRequireValue(getargs::Opt::Long(long)) => {
-            Error::UnexpectedValue(crate::Opt::Long(long))
-        }
-        _ => Error::InvalidArguments,
-    })
+        Err(_) => Err(Error::InvalidArguments),
+    }
 }
 
 /// The error for an argument that no field consumed, suggesting one of `longs` for a long option.
-pub fn unexpected<'a>(argument: getargs::Arg<&'a str>, longs: &[&[&'static str]]) -> Error<'a> {
+pub fn unexpected<'a, A: Input<'a>>(argument: Arg<'a, A>, longs: &[&[&'static str]]) -> Error<'a> {
     match argument {
-        getargs::Arg::Positional(value) => Error::UnexpectedArgument(value),
-        getargs::Arg::Short(short) => Error::UnknownOption {
+        Arg::Positional(value) => unexpected_argument(value),
+        Arg::Short(short) => Error::UnknownOption {
             option: crate::Opt::Short(short),
             suggestion: None,
         },
-        getargs::Arg::Long(long) => Error::UnknownOption {
+        Arg::Long(long) => Error::UnknownOption {
             option: crate::Opt::Long(long),
             suggestion: crate::suggest::suggest(long, longs),
         },
@@ -400,17 +407,17 @@ pub fn unexpected<'a>(argument: getargs::Arg<&'a str>, longs: &[&[&'static str]]
 
 /// Parses the rest of the command line as the arguments of the subcommand `T`, handling its help
 /// flag and offering the arguments it does not consume to the `global` options of its parents.
-pub fn command<'a, T: Args<'a>, I: Iterator<Item = &'a str>>(
-    options: &mut getargs::Options<&'a str, I>,
+pub fn command<'a, T: Args<'a>, A: Input<'a>, I: Iterator<Item = A>>(
+    options: &mut getargs::Options<A, I>,
     context: Context<'a, '_>,
-    globals: &mut Globals<'_, 'a, I>,
+    globals: &mut Globals<'_, 'a, A, I>,
 ) -> Result<T::State, Error<'a>> {
     let mut state = T::init();
     while let Some(argument) = next_arg(options)? {
         if T::COMMAND.help_flag {
             match argument {
-                getargs::Arg::Short('h') => return Err(Error::Help(context.help(false))),
-                getargs::Arg::Long("help") => return Err(Error::Help(context.help(true))),
+                Arg::Short('h') => return Err(Error::Help(context.help(false))),
+                Arg::Long("help") => return Err(Error::Help(context.help(true))),
                 _ => {}
             }
         }

@@ -20,8 +20,8 @@ use syn::{DeriveInput, parse_macro_input};
 ///
 /// # Attribute syntax
 ///
-/// See the [crate-level documentation](getargs_derive) for a full reference of
-/// supported `#[arg(...)]` and `#[command(...)]` attributes.
+/// See the [crate-level documentation](https://docs.rs/getargs-derive/latest/getargs_derive/)
+/// for a full reference of supported `#[arg(...)]` and `#[command(...)]` attributes.
 #[proc_macro_derive(GetArgs, attributes(arg, command))]
 pub fn derive_get_args(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -39,7 +39,9 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
 /// (declared with `#[arg(...)]` as in a `GetArgs` struct) or newtype variants wrapping a struct
 /// deriving `GetArgs`.
 ///
-/// See the [subcommands guide](getargs_derive::guide::subcommands) for details.
+/// See the
+/// [subcommands guide](https://docs.rs/getargs-derive/latest/getargs_derive/guide/subcommands/index.html)
+/// for details.
 #[proc_macro_derive(Subcommand, attributes(arg, command))]
 pub fn derive_subcommand(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -55,7 +57,9 @@ pub fn derive_subcommand(input: TokenStream) -> TokenStream {
 /// Each variant is accepted under its kebab-cased name, which `#[value(name = "...")]` overrides,
 /// and under every `#[value(alias = "...")]`.
 ///
-/// See the [value enum guide](getargs_derive::guide::value_enum) for details.
+/// See the
+/// [value enum guide](https://docs.rs/getargs-derive/latest/getargs_derive/guide/value_enum/index.html)
+/// for details.
 #[proc_macro_derive(ValueEnum, attributes(value))]
 pub fn derive_value_enum(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

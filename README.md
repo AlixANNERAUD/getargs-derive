@@ -65,6 +65,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 - [Version Flag][guide-version]: `#[command(version)]`, `-V`/`--version` and the `VERSION`/`VERSION_TEXT` constants.
 - [Error Handling][guide-errors]: the `Error` enum, its Clap-style messages and "did you mean" suggestions.
 - [Shell Completions and Man Pages][guide-completions]: the `Command` metadata trait, and bash, zsh and fish completion scripts and man pages with the `std` feature.
+- [Non-UTF-8 Arguments][guide-non-utf8]: `from_bytes` and `parse_bytes` for raw `&[u8]` arguments, `&[u8]`, `&OsStr` and `PathBuf` fields, and `from_args_os` with the `std` feature.
 - [Clap Compatibility][guide-clap]: what is shared with Clap, and what is not supported.
 - [`no_std` Support][guide-no-std].
 
@@ -97,3 +98,4 @@ Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
 [guide-completions]: docs/completions.md
 [guide-clap]: docs/clap.md
 [guide-no-std]: docs/no_std.md
+[guide-non-utf8]: docs/non_utf8.md

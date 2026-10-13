@@ -1,4 +1,5 @@
 use crate::help::expr_text;
+use crate::model::types::ValueKind;
 use crate::model::{FieldModel, ValueParser};
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -48,12 +49,58 @@ fn conversion(field: &FieldModel, value: &TokenStream, error_name: &str) -> Toke
             )?
         },
         Some(ValueParser::Function(path)) => quote! { #path(#value).map_err(#invalid)? },
-        _ if field.is_str => quote! { #value },
+        _ if field.value_kind == ValueKind::Str => quote! { #value },
         _ => quote! { core::str::FromStr::from_str(#value).map_err(#invalid)? },
     }
 }
 
+fn raw_conversion(
+    field: &FieldModel,
+    value: &TokenStream,
+    error_name: &str,
+) -> Option<TokenStream> {
+    if field.value_enum || field.value_parser.is_some() {
+        return None;
+    }
+    let value_ty = &field.value_ty;
+    Some(match field.value_kind {
+        ValueKind::Bytes => quote! { getargs_derive::__private::bytes(#value) },
+        ValueKind::OsStr => quote! { getargs_derive::__private::os_str(#value, #error_name)? },
+        ValueKind::Path => quote! { getargs_derive::__private::path(#value, #error_name)? },
+        ValueKind::OsOwned => quote! {
+            <#value_ty as core::convert::From<&getargs_derive::__private::OsStr>>::from(
+                getargs_derive::__private::os_str(#value, #error_name)?,
+            )
+        },
+        ValueKind::Str | ValueKind::Parsed => return None,
+    })
+}
+
 pub(super) fn convert(field: &FieldModel, value: TokenStream, error_name: &str) -> TokenStream {
+    let text = quote! { getargs_derive::__private::text(#value, #error_name)? };
+    let Some(raw) = raw_conversion(field, &value, error_name) else {
+        let converted = convert_text(field, quote! { __text }, error_name);
+        return quote! {
+            {
+                let __text = #text;
+                #converted
+            }
+        };
+    };
+    if field.possible_values.is_empty() {
+        return raw;
+    }
+    let check = possible_values_check(field, &quote! { __text }, error_name);
+    quote! {
+        {
+            let __text = #text;
+            #check
+            #raw
+        }
+    }
+}
+
+fn convert_text(field: &FieldModel, value: TokenStream, error_name: &str) -> TokenStream {
     let check = possible_values_check(field, &value, error_name);
     let converted = conversion(field, &value, error_name);
     match &field.value_parser {

@@ -51,6 +51,8 @@ option or a flag also accepted after the subcommands; see [Subcommands][guide-su
 | Type                      | Positional | Named option | Notes                                                                       |
 | ------------------------- | ---------- | ------------ | --------------------------------------------------------------------------- |
 | `&str`                    | ✓          | ✓            | Borrows the argument string directly — no allocation.                       |
+| `&[u8]`                   | ✓          | ✓            | Borrows the raw bytes of the argument, which need not be valid UTF-8. See [Non-UTF-8 Arguments][guide-non-utf8]. |
+| `&OsStr`, `&Path`, `OsString`, `PathBuf` | ✓ | ✓          | With the `std` feature, converted without a UTF-8 check on Unix. `OsString` and `PathBuf` use `FromStr` without it. |
 | `bool`                    | ✗          | ✓            | Flag, set to `true` by its presence (`false` with `action = SetFalse`).     |
 | Integer with `action = Count` | ✗      | ✓            | Flag counting its occurrences.                                              |
 | `NonZeroU*` / `NonZeroI*` | ✓          | ✓            | Parsed via `.parse()`. Required unless a default is given.                  |
@@ -134,6 +136,7 @@ The macro reports a compile error, pointing at the offending attribute or field,
 [guide-env]: env.md
 [guide-flatten]: flatten.md
 [guide-help]: help.md
+[guide-non-utf8]: non_utf8.md
 [guide-parsing]: parsing.md
 [guide-positionals]: positionals.md
 [guide-subcommands]: subcommands.md

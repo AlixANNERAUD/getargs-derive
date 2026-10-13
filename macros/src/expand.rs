@@ -1,4 +1,5 @@
 mod args_trait;
+mod bytes;
 mod collection;
 mod command;
 mod env;

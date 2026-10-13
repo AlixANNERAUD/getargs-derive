@@ -100,7 +100,7 @@ impl FieldTokens {
                     )
                 };
                 self.prologue.push(quote! {
-                    if let getargs::Arg::Short(short) = __argument {
+                    if let getargs_derive::__private::Arg::Short(short) = __argument {
                         if #allow_negative_numbers && !__context.blocked && #earlier {
                             if let core::option::Option::Some(value) =
                                 getargs_derive::__negative_number(__context.raw, short)
@@ -112,7 +112,7 @@ impl FieldTokens {
                     }
                 });
                 self.steps.push(quote! {
-                    if let getargs::Arg::Positional(value) = __argument {
+                    if let getargs_derive::__private::Arg::Positional(value) = __argument {
                         if #accepts {
                             #store
                             return core::result::Result::Ok(true);

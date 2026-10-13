@@ -107,7 +107,7 @@ help: the trait `getargs_derive::__private::Args<'__getargs>` is implemented for
 note: required by a bound in `getargs_derive::__private::command`
   --> src/private.rs
    |
-   | pub fn command<'a, T: Args<'a>, I: Iterator<Item = &'a str>>(
+   | pub fn command<'a, T: Args<'a>, A: Input<'a>, I: Iterator<Item = A>>(
    |                       ^^^^^^^^ required by this bound in `command`
    = note: this error originates in the derive macro `GetArgs` (in Nightly builds, run with -Z macro-backtrace for more info)
 

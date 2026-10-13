@@ -236,7 +236,7 @@ pub(crate) fn expand(input: &DeriveInput, variants: &[Variant]) -> TokenStream {
                     __context.node,
                     #index,
                 ));
-                let __state = getargs_derive::__private::command::<#ty, __I>(
+                let __state = getargs_derive::__private::command::<#ty, __A, __I>(
                     __options,
                     __context,
                     __globals,
@@ -270,11 +270,14 @@ pub(crate) fn expand(input: &DeriveInput, variants: &[Variant]) -> TokenStream {
             const VISIBLE: &'static [&'static str] = &[#(#visible),*];
             const INFOS: &'static [getargs_derive::CommandInfo] = &[#(#infos),*];
 
-            fn try_command<__I: Iterator<Item = &#lifetime str>>(
+            fn try_command<
+                __A: getargs_derive::__private::Input<#lifetime>,
+                __I: Iterator<Item = __A>,
+            >(
                 __name: &#lifetime str,
-                __options: &mut getargs::Options<&#lifetime str, __I>,
+                __options: &mut getargs::Options<__A, __I>,
                 __context: getargs_derive::__private::Context<#lifetime, '_>,
-                __globals: &mut getargs_derive::__private::Globals<'_, #lifetime, __I>,
+                __globals: &mut getargs_derive::__private::Globals<'_, #lifetime, __A, __I>,
             ) -> core::result::Result<
                 core::option::Option<Self::State>,
                 getargs_derive::Error<#lifetime>,

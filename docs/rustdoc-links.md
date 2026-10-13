@@ -17,3 +17,4 @@
 [guide-completions]: crate::guide::completions
 [guide-clap]: crate::guide::clap
 [guide-no-std]: crate::guide::no_std
+[guide-non-utf8]: crate::guide::non_utf8

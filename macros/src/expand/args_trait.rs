@@ -245,12 +245,15 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
             let commands = subcommand_trait(&subcommand.ty);
             (
                 quote! {
-                    if let getargs::Arg::Positional(__name) = __argument {
-                        if !__options.opts_ended() {
+                    if let getargs_derive::__private::Arg::Positional(__value) = __argument {
+                        if let (false, core::result::Result::Ok(__name)) = (
+                            __options.opts_ended(),
+                            getargs_derive::__private::Input::text(__value),
+                        ) {
                             let __found = {
                                 let mut __forward = |
-                                    __argument: getargs::Arg<&#lifetime str>,
-                                    __options: &mut getargs::Options<&#lifetime str, __I>,
+                                    __argument: getargs_derive::__private::Arg<#lifetime, __A>,
+                                    __options: &mut getargs::Options<__A, __I>,
                                 | -> core::result::Result<bool, getargs_derive::Error<#lifetime>> {
                                     if <Self as getargs_derive::__private::Args<#lifetime>>::try_global(
                                         &mut *__state,
@@ -272,12 +275,12 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
                     }
                 },
                 quote! {
-                    if let getargs::Arg::Positional(__name) = __argument {
+                    if let getargs_derive::__private::Arg::Positional(__value) = __argument {
                         if !__options.opts_ended() {
-                            return Err(getargs_derive::Error::UnknownSubcommand {
-                                name: __name,
-                                suggestion: getargs_derive::__suggest(__name, &[#commands::NAMES]),
-                            });
+                            return Err(getargs_derive::__private::unknown_subcommand(
+                                __value,
+                                &[#commands::NAMES],
+                            ));
                         }
                     }
                 },
@@ -329,12 +332,15 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
                 #filled
             }
 
-            fn try_arg<__I: Iterator<Item = &#lifetime str>>(
+            fn try_arg<
+                __A: getargs_derive::__private::Input<#lifetime>,
+                __I: Iterator<Item = __A>,
+            >(
                 __state: &mut Self::State,
-                __argument: getargs::Arg<&#lifetime str>,
-                __options: &mut getargs::Options<&#lifetime str, __I>,
+                __argument: getargs_derive::__private::Arg<#lifetime, __A>,
+                __options: &mut getargs::Options<__A, __I>,
                 __context: getargs_derive::__private::Context<#lifetime, '_>,
-                __globals: &mut getargs_derive::__private::Globals<'_, #lifetime, __I>,
+                __globals: &mut getargs_derive::__private::Globals<'_, #lifetime, __A, __I>,
             ) -> core::result::Result<bool, getargs_derive::Error<#lifetime>> {
                 #last
                 #(#prologue)*
@@ -345,10 +351,13 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
                 core::result::Result::Ok(false)
             }
 
-            fn try_global<__I: Iterator<Item = &#lifetime str>>(
+            fn try_global<
+                __A: getargs_derive::__private::Input<#lifetime>,
+                __I: Iterator<Item = __A>,
+            >(
                 __state: &mut Self::State,
-                __argument: getargs::Arg<&#lifetime str>,
-                __options: &mut getargs::Options<&#lifetime str, __I>,
+                __argument: getargs_derive::__private::Arg<#lifetime, __A>,
+                __options: &mut getargs::Options<__A, __I>,
                 __context: getargs_derive::__private::Context<#lifetime, '_>,
             ) -> core::result::Result<bool, getargs_derive::Error<#lifetime>> {
                 #global_match

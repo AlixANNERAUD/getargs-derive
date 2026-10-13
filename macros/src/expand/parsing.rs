@@ -46,7 +46,7 @@ pub(super) fn negative_positional(
         }
     };
     quote! {
-        if let getargs::Arg::Short(short) = __argument {
+        if let getargs_derive::__private::Arg::Short(short) = __argument {
             if #allow_negative_numbers
                 && !__context.blocked
                 && #earlier
@@ -74,7 +74,7 @@ pub(super) fn positional(
         quote! { !(__last && __options.opts_ended()) }
     };
     quote! {
-        if let getargs::Arg::Positional(value) = __argument {
+        if let getargs_derive::__private::Arg::Positional(value) = __argument {
             if #slot.is_none() && #accepts {
                 #slot = core::option::Option::Some(#parsed);
                 return core::result::Result::Ok(true);

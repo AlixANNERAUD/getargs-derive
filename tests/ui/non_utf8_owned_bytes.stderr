@@ -1,0 +1,17 @@
+error[E0277]: the trait bound `Box<[u8]>: FromStr` is not satisfied
+ --> tests/ui/non_utf8_owned_bytes.rs:3:10
+  |
+3 | #[derive(GetArgs)]
+  |          ^^^^^^^ the trait `FromStr` is not implemented for `Box<[u8]>`
+  |
+  = help: the following other types implement trait `FromStr`:
+            ByteString
+            CString
+            IpAddr
+            Ipv4Addr
+            Ipv6Addr
+            NonZero<i128>
+            NonZero<i16>
+            NonZero<i32>
+          and $N others
+  = note: this error originates in the derive macro `GetArgs` (in Nightly builds, run with -Z macro-backtrace for more info)

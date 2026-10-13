@@ -30,7 +30,7 @@ pub(super) fn version_tokens(container: &ContainerModel) -> (TokenStream, TokenS
                 pub const VERSION_TEXT: &'static str = #display;
             },
             quote! {
-                getargs::Arg::Short('V') | getargs::Arg::Long("version") => {
+                getargs_derive::__private::Arg::Short('V') | getargs_derive::__private::Arg::Long("version") => {
                     return Err(getargs_derive::Error::Version(Self::VERSION_TEXT));
                 }
             },
