@@ -1,4 +1,4 @@
-use crate::help::help_text;
+use crate::help::{help_text, version_text};
 use crate::model::{ContainerModel, DefaultValue, FieldKind, FieldModel};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -150,12 +150,34 @@ pub(crate) fn expand(
         }
     };
 
+    let (version_items, version_handler) = match version_text(container) {
+        Some((version, display)) => (
+            quote! {
+                /// Version string set with `#[command(version)]`.
+                pub const VERSION: &'static str = #version;
+
+                /// Version line returned in [`Error::Version`](getargs_derive::Error::Version) when `-V` or `--version` is given.
+                ///
+                /// It is the command name followed by a space and [`VERSION`](Self::VERSION).
+                pub const VERSION_TEXT: &'static str = #display;
+            },
+            quote! {
+                getargs::Arg::Short('V') | getargs::Arg::Long("version") => {
+                    return Err(getargs_derive::Error::Version(Self::VERSION_TEXT));
+                }
+            },
+        ),
+        None => (quote! {}, quote! {}),
+    };
+
     quote! {
         impl #impl_generics #name #ty_generics #where_clause {
             /// Help text generated at compile time from the struct, its fields and their documentation.
             ///
             /// Returned in [`Error::Help`](getargs_derive::Error::Help) when `-h` or `--help` is given.
             pub const HELP: &'static str = #help;
+
+            #version_items
 
             /// Parse CLI arguments from an iterator, using `getargs::Options`.
             ///
@@ -171,6 +193,7 @@ pub(crate) fn expand(
                 while let Some(argument) = options.next_arg().map_err(|_| getargs_derive::Error::UnknownOption)? {
                     match argument {
                         #help_handler
+                        #version_handler
                         #(#option_match_arms)*
                         #positional_handler
                         _ => return Err(getargs_derive::Error::UnknownOption),

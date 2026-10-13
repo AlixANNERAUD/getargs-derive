@@ -1,7 +1,7 @@
 use getargs_derive::GetArgs;
 
 #[derive(GetArgs)]
-#[command(name = "tool", version = "1.0")]
+#[command(name = "tool", long_about = "More")]
 struct Cli {
     #[arg(short, long)]
     verbose: bool,

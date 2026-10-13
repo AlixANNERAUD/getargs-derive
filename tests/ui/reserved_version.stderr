@@ -1,0 +1,11 @@
+error: short option `-V` is reserved for the generated version flag; choose another short name, or remove `version` from `#[command(...)]` to handle `-V` yourself
+ --> tests/ui/reserved_version.rs:6:19
+  |
+6 |     #[arg(short = 'V', long = "verbose")]
+  |                   ^^^
+
+error: long option `--version` is reserved for the generated version flag; choose another long name, or remove `version` from `#[command(...)]` to handle `--version` yourself
+ --> tests/ui/reserved_version.rs:8:11
+  |
+8 |     #[arg(long)]
+  |           ^^^^
