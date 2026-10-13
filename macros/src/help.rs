@@ -1,4 +1,4 @@
-use crate::model::{ContainerModel, DefaultValue, FieldKind, FieldModel, Version};
+use crate::model::{ContainerModel, DefaultValue, FieldKind, FieldModel};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{Expr, ExprLit, Lit, UnOp};
@@ -168,19 +168,9 @@ pub(crate) fn help_text(container: &ContainerModel, fields: &[FieldModel]) -> To
     quote! { ::core::concat!(#prefix, #name, #suffix) }
 }
 
-fn command_name(container: &ContainerModel) -> TokenStream {
+pub(crate) fn command_name(container: &ContainerModel) -> TokenStream {
     match &container.name {
         Some(name) => quote! { #name },
         None => quote! { ::core::env!("CARGO_PKG_NAME") },
     }
-}
-
-pub(crate) fn version_text(container: &ContainerModel) -> Option<(TokenStream, TokenStream)> {
-    let version = match container.version.as_ref()? {
-        Version::Package => quote! { ::core::env!("CARGO_PKG_VERSION") },
-        Version::Literal(version) => quote! { #version },
-    };
-    let name = command_name(container);
-    let display = quote! { ::core::concat!(#name, " ", #version) };
-    Some((version, display))
 }
