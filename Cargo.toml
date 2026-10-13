@@ -1,20 +1,27 @@
-[package]
-name = "getargs-derive"
+[workspace]
+members = ["macros"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
-description = "A derive macro for the getargs crate — auto-generate CLI argument parsing for your structs"
 license = "MIT"
-repository = "https://github.com/alix-anneraud/getargs-derive"
-keywords = ["cli", "arguments", "args", "parse", "derive"]
-categories = ["command-line-interface"]
+repository = "https://github.com/AlixANNERAUD/getargs-derive"
 authors = ["Alix ANNERAUD <alix@anneraud.fr>"]
 
+[package]
+name = "getargs-derive"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "A derive macro for the getargs crate — auto-generate CLI argument parsing for your structs"
+keywords = ["cli", "arguments", "args", "parse", "derive"]
+categories = ["command-line-interface"]
+
 [dependencies]
-getargs-derive-macros = { path = "./macros" }
+getargs-derive-macros = { version = "=0.1.0", path = "./macros" }
 
 [dev-dependencies]
 getargs = { version = "0.5" }
 trybuild = "1"
-
-[workspace]
-members = ["macros"]
