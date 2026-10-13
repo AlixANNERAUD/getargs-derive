@@ -41,3 +41,23 @@ jobs:
           slug: AlixANNERAUD/getargs-derive
           files: lcov.info
           fail_ci_if_error: true
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Version consistency
+        run: |
+          metadata=$(cargo metadata --format-version 1 --no-deps)
+          root=$(echo "$metadata" | jq -r '.packages[] | select(.name == "getargs-derive") | .version')
+          macros=$(echo "$metadata" | jq -r '.packages[] | select(.name == "getargs-derive-macros") | .version')
+          pin=$(echo "$metadata" | jq -r '.packages[] | select(.name == "getargs-derive") | .dependencies[] | select(.name == "getargs-derive-macros") | .req')
+          echo "getargs-derive=$root getargs-derive-macros=$macros pin=$pin"
+          test "$root" = "$macros"
+          test "$pin" = "=$root"
+
+      - name: Package
+        run: cargo package --workspace
