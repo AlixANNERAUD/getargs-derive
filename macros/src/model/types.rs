@@ -32,18 +32,50 @@ pub(super) fn option_inner_type(ty: &Type) -> Option<&Type> {
     }
 }
 
-pub(super) fn is_str_reference_type(ty: &Type) -> bool {
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ValueKind {
+    Str,
+    Bytes,
+    OsStr,
+    Path,
+    OsOwned,
+    Parsed,
+}
+
+impl ValueKind {
+    pub(crate) fn requires_std(self) -> bool {
+        matches!(self, ValueKind::OsStr | ValueKind::Path)
+    }
+}
+
+fn last_ident(ty: &Type) -> Option<&syn::Ident> {
+    match ty {
+        Type::Path(path) if path.qself.is_none() => {
+            path.path.segments.last().map(|segment| &segment.ident)
+        }
+        _ => None,
+    }
+}
+
+pub(super) fn value_kind(ty: &Type) -> ValueKind {
     match ty {
         Type::Reference(reference) => match reference.elem.as_ref() {
-            Type::Path(path) => path
-                .path
-                .segments
-                .last()
-                .map(|segment| segment.ident == "str")
-                .unwrap_or(false),
-            _ => false,
+            Type::Slice(slice) if last_ident(&slice.elem).is_some_and(|ident| ident == "u8") => {
+                ValueKind::Bytes
+            }
+            elem => match last_ident(elem) {
+                Some(ident) if ident == "str" => ValueKind::Str,
+                Some(ident) if ident == "OsStr" => ValueKind::OsStr,
+                Some(ident) if ident == "Path" => ValueKind::Path,
+                _ => ValueKind::Parsed,
+            },
         },
-        _ => false,
+        _ => match last_ident(ty) {
+            Some(ident) if cfg!(feature = "std") && (ident == "PathBuf" || ident == "OsString") => {
+                ValueKind::OsOwned
+            }
+            _ => ValueKind::Parsed,
+        },
     }
 }
 

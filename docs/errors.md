@@ -53,10 +53,32 @@ assert_eq!(error.to_string(), "the following required argument was not provided:
 | `MissingSubcommand(&'static [&'static str])`          | A required subcommand was not given. Lists the visible subcommands. See [Subcommands][guide-subcommands].   | `a subcommand is required but one was not provided`, followed by a `[subcommands: add, remove]` line |
 | `UnknownSubcommand { name: &'a str, suggestion }`     | A positional argument where a subcommand was expected is not a subcommand name or alias. `suggestion` is the closest visible name or alias, if any. | `unrecognized subcommand 'stats'`, followed by a `tip: a similar subcommand exists: 'status'` line when there is a suggestion |
 | `InvalidArguments`                                    | `getargs` reported an error kind this crate does not recognise (a future `getargs` release). Never returned with known `getargs` 0.5 releases. | `the arguments could not be parsed` |
+| `InvalidUtf8 { name: Option<&'static str>, value: &'a [u8] }` | With [raw byte arguments][guide-non-utf8], a value that is not valid UTF-8 was given to a field parsed from text. `name` is `None` for an argument that matches no field (an extra positional argument, an option or subcommand name). | `invalid UTF-8 in value 'caf\xE9' for '--name <NAME>'`, or `invalid UTF-8 in argument 'caf\xE9'` without a name |
 | `Help(&'static str)`                                  | Not a failure: `-h` or `--help` was given. Carries the generated help text (`HELP` for `-h`, `LONG_HELP` for `--help`), or the help of the subcommand when given after one. See [Generated Help][guide-help]. | the help text                                                   |
 | `Version(&'static str)`                               | Not a failure: `-V` or `--version` was given with `#[command(version)]`. Carries the version line (`VERSION_TEXT`). See [Version Flag][guide-version]. | the version line                     |
 
 `Error::is_help()` and `Error::is_version()` tell these two outcomes apart from parse failures.
+
+`Error` is `#[non_exhaustive]`: new features add new kinds of failures, such as `InvalidUtf8` for [raw byte arguments][guide-non-utf8],
+and this lets them be added in a minor release instead of breaking every exhaustive `match`. A `match` on an `Error` outside this crate therefore needs a
+wildcard arm, typically printing the error with its `Display` implementation. `Opt` stays exhaustive: an option is either short or long.
+
+```rust
+use getargs_derive::{Error, GetArgs};
+
+#[derive(GetArgs)]
+struct Cli<'a> {
+    input: &'a str,
+}
+
+let message = match Cli::from_args([].into_iter()) {
+    Ok(cli) => cli.input.to_string(),
+    Err(Error::Help(help)) => help.to_string(),
+    Err(Error::MissingArgument(name)) => format!("missing {name}"),
+    Err(error) => error.to_string(),
+};
+assert_eq!(message, "missing <INPUT>");
+```
 
 The `&'static str` names are written as in the generated help: `<VALUE_NAME>` for a positional argument, and the long name (or the short name
 when there is none) followed by `<VALUE_NAME>` for a named option (`--jobs <JOBS>`, `-p <PORT>`). `Opt<'a>` is the option as the user wrote it,
@@ -74,6 +96,7 @@ as shown in [Generated Help][guide-help].
 [guide-aliases]: aliases.md
 [guide-collections]: collections.md
 [guide-help]: help.md
+[guide-non-utf8]: non_utf8.md
 [guide-relations]: relations.md
 [guide-subcommands]: subcommands.md
 [guide-validation]: validation.md

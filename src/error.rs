@@ -24,7 +24,11 @@ impl core::fmt::Display for Opt<'_> {
 /// Names of the struct's own arguments (`&'static str`) are written as in the generated help:
 /// `<INPUT>` for a positional argument, `--output <OUTPUT>` for an option taking a value
 /// (`-o <OUTPUT>` when it has no long name).
+///
+/// The enum is `#[non_exhaustive]`: new variants can be added in a minor release, so a `match` on
+/// it needs a wildcard arm.
 #[must_use]
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Error<'a> {
     /// A required positional argument or named option was not provided on the command line.
@@ -164,6 +168,20 @@ pub enum Error<'a> {
         min: usize,
         /// The number of values given.
         actual: usize,
+    },
+
+    /// An argument that is not valid UTF-8 was given where text is required, when parsing raw
+    /// bytes with `from_bytes`, `parse_bytes` or `from_args_os`.
+    ///
+    /// It is returned for a value of a `&str` field or of a field parsed from a string, and for an
+    /// argument that matches no field, such as an option name, a subcommand name or an extra
+    /// positional argument, since those are reported as text by the other variants.
+    InvalidUtf8 {
+        /// The argument name, e.g. `"--name <NAME>"`, or `None` for an argument that matches no
+        /// field.
+        name: Option<&'static str>,
+        /// The raw bytes of the argument, displayed with [`Lossy`](crate::Lossy).
+        value: &'a [u8],
     },
 
     /// Help was requested with `-h` or `--help`.
@@ -310,6 +328,19 @@ impl core::fmt::Display for Error<'_> {
                     f,
                     "{min} values required by '{name}'; only {actual} {verb} provided"
                 )
+            }
+            Error::InvalidUtf8 {
+                name: Some(name),
+                value,
+            } => {
+                write!(
+                    f,
+                    "invalid UTF-8 in value '{}' for '{name}'",
+                    crate::Lossy(value)
+                )
+            }
+            Error::InvalidUtf8 { name: None, value } => {
+                write!(f, "invalid UTF-8 in argument '{}'", crate::Lossy(value))
             }
             Error::Help(help) => f.write_str(help),
             Error::Version(version) => f.write_str(version),

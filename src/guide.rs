@@ -75,3 +75,7 @@ pub mod clap {}
 #[doc = include_str!("../docs/rustdoc-links.md")]
 #[doc = include_str!("../docs/no_std.md")]
 pub mod no_std {}
+
+#[doc = include_str!("../docs/rustdoc-links.md")]
+#[doc = include_str!("../docs/non_utf8.md")]
+pub mod non_utf8 {}

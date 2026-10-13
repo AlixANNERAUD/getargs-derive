@@ -38,8 +38,8 @@ pub(super) fn option_pattern(field: &FieldModel) -> TokenStream {
         .iter()
         .chain(field.long_aliases.iter().map(|alias| &alias.name));
     let patterns: Vec<TokenStream> = shorts
-        .map(|short| quote! { getargs::Arg::Short(#short) })
-        .chain(longs.map(|long| quote! { getargs::Arg::Long(#long) }))
+        .map(|short| quote! { getargs_derive::__private::Arg::Short(#short) })
+        .chain(longs.map(|long| quote! { getargs_derive::__private::Arg::Long(#long) }))
         .collect();
     quote! { #(#patterns)|* }
 }

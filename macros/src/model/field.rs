@@ -15,7 +15,7 @@ mod value_enum;
 use super::attr::{Key, dispatch};
 use super::doc::{long_doc, short_doc};
 use super::errors::Errors;
-use super::types::{is_bool_type, is_count_type, is_str_reference_type, option_inner_type};
+use super::types::{ValueKind, is_bool_type, is_count_type, option_inner_type, value_kind};
 pub(crate) use action::FlagAction;
 pub(crate) use aliases::Alias;
 pub(crate) use collection::CollectionModel;
@@ -122,7 +122,7 @@ pub(crate) struct FieldModel {
     pub(crate) long_aliases: Vec<Alias<String>>,
     pub(crate) default: Option<DefaultValue>,
     pub(crate) env: Option<String>,
-    pub(crate) is_str: bool,
+    pub(crate) value_kind: ValueKind,
     pub(crate) help: Option<String>,
     pub(crate) value_name: String,
     pub(crate) relations: Relations,
@@ -533,6 +533,18 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
         &mut errors,
     );
 
+    let value_kind = value_kind(value_ty);
+    if value_kind.requires_std()
+        && raw.value_parser.is_none()
+        && raw.value_enum.is_none()
+        && !cfg!(feature = "std")
+    {
+        errors.push(syn::Error::new_spanned(
+            value_ty,
+            "`&OsStr` and `&Path` fields require the `std` feature of `getargs-derive`",
+        ));
+    }
+
     let value_name = raw
         .value_name
         .map(|(value, _)| value)
@@ -541,7 +553,7 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
     errors.finish(FieldModel {
         ident,
         name,
-        is_str: is_str_reference_type(value_ty),
+        value_kind,
         value_ty: value_ty.clone(),
         optional: match &collection {
             Some(collection) => collection.min == 0,

@@ -1,0 +1,11 @@
+error: `&OsStr` and `&Path` fields require the `std` feature of `getargs-derive`
+ --> tests/ui/no_std/non_utf8_os_str_requires_std.rs:9:12
+  |
+9 |     input: &'a OsStr,
+  |            ^^^^^^^^^
+
+error: `&OsStr` and `&Path` fields require the `std` feature of `getargs-derive`
+  --> tests/ui/no_std/non_utf8_os_str_requires_std.rs:11:20
+   |
+11 |     output: Option<&'a Path>,
+   |                    ^^^^^^^^

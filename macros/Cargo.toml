@@ -7,6 +7,9 @@ repository.workspace = true
 authors.workspace = true
 description = "Internal implementation detail of getargs-derive. Not meant for direct use; depend on getargs-derive instead."
 
+[features]
+std = []
+
 [dependencies]
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"

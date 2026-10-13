@@ -21,7 +21,7 @@ categories = ["command-line-interface"]
 
 [features]
 alloc = []
-std = ["alloc"]
+std = ["alloc", "getargs-derive-macros/std"]
 heapless = ["dep:heapless"]
 
 [package.metadata.docs.rs]

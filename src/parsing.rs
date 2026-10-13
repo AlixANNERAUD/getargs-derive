@@ -1,3 +1,4 @@
+use crate::__private::Input;
 use core::cell::Cell;
 
 fn is_number(text: &str) -> bool {
@@ -26,18 +27,24 @@ fn is_number(text: &str) -> bool {
     }
 }
 
-fn is_negative_number(value: &str) -> bool {
-    value.strip_prefix('-').is_some_and(is_number)
+fn is_negative_number(value: &[u8]) -> bool {
+    value
+        .strip_prefix(b"-")
+        .and_then(|rest| core::str::from_utf8(rest).ok())
+        .is_some_and(is_number)
 }
 
 #[doc(hidden)]
-pub fn accepts_value(value: &str, allow_negative_numbers: bool) -> bool {
-    !value.starts_with('-') || value == "-" || (allow_negative_numbers && is_negative_number(value))
+pub fn accepts_value<'a>(value: impl Input<'a>, allow_negative_numbers: bool) -> bool {
+    let value = value.bytes();
+    !value.starts_with(b"-")
+        || value == b"-"
+        || (allow_negative_numbers && is_negative_number(value))
 }
 
 #[doc(hidden)]
-pub fn negative_number<'a>(raw: Option<&Cell<Option<&'a str>>>, short: char) -> Option<&'a str> {
-    let raw = raw?.get()?;
+pub fn negative_number<'a>(raw: Option<&Cell<Option<&'a [u8]>>>, short: char) -> Option<&'a str> {
+    let raw = core::str::from_utf8(raw?.get()?).ok()?;
     let rest = raw.strip_prefix('-')?;
     (rest.starts_with(short) && is_number(rest)).then_some(raw)
 }
@@ -45,22 +52,22 @@ pub fn negative_number<'a>(raw: Option<&Cell<Option<&'a str>>>, short: char) -> 
 #[doc(hidden)]
 pub struct RawArgs<'r, 'a, I> {
     iter: I,
-    last: &'r Cell<Option<&'a str>>,
+    last: &'r Cell<Option<&'a [u8]>>,
 }
 
 impl<'r, 'a, I> RawArgs<'r, 'a, I> {
     #[doc(hidden)]
-    pub fn new(iter: I, last: &'r Cell<Option<&'a str>>) -> Self {
+    pub fn new(iter: I, last: &'r Cell<Option<&'a [u8]>>) -> Self {
         Self { iter, last }
     }
 }
 
-impl<'a, I: Iterator<Item = &'a str>> Iterator for RawArgs<'_, 'a, I> {
-    type Item = &'a str;
+impl<'a, A: Input<'a>, I: Iterator<Item = A>> Iterator for RawArgs<'_, 'a, I> {
+    type Item = A;
 
-    fn next(&mut self) -> Option<&'a str> {
+    fn next(&mut self) -> Option<A> {
         let item = self.iter.next();
-        self.last.set(item);
+        self.last.set(item.map(Input::bytes));
         item
     }
 }

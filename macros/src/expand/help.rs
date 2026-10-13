@@ -122,10 +122,10 @@ pub(super) fn help_handler(container: &ContainerModel) -> TokenStream {
         quote! {}
     } else {
         quote! {
-            getargs::Arg::Short('h') => {
+            getargs_derive::__private::Arg::Short('h') => {
                 return Err(getargs_derive::Error::Help(Self::HELP));
             }
-            getargs::Arg::Long("help") => {
+            getargs_derive::__private::Arg::Long("help") => {
                 return Err(getargs_derive::Error::Help(Self::LONG_HELP));
             }
         }

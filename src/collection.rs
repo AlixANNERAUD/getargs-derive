@@ -1,3 +1,4 @@
+use crate::__private::{Input, text};
 use crate::Error;
 use core::fmt;
 use core::hash::{Hash, Hasher};
@@ -236,15 +237,19 @@ impl<T> Collection for alloc::vec::Vec<T> {
     }
 }
 
-fn append<'a, C: Collection>(
+fn append<'a, V: Input<'a>, C: Collection>(
     collection: &mut C,
-    value: &'a str,
+    value: V,
     name: &'static str,
     max: usize,
-    convert: &mut impl FnMut(&'a str) -> Result<C::Item, Error<'a>>,
+    convert: &mut impl FnMut(V) -> Result<C::Item, Error<'a>>,
 ) -> Result<(), Error<'a>> {
     if collection.count() >= max {
-        return Err(Error::TooManyValues { name, value, max });
+        return Err(Error::TooManyValues {
+            name,
+            value: text(value, name)?,
+            max,
+        });
     }
     let item = convert(value)?;
     collection.append(item);
@@ -252,22 +257,25 @@ fn append<'a, C: Collection>(
 }
 
 #[doc(hidden)]
-pub fn push_values<'a, C: Collection>(
+pub fn push_values<'a, V: Input<'a>, C: Collection>(
     slot: &mut Option<C>,
-    value: &'a str,
+    value: V,
     delimiter: Option<char>,
     name: &'static str,
     max: usize,
-    mut convert: impl FnMut(&'a str) -> Result<C::Item, Error<'a>>,
+    mut convert: impl FnMut(V) -> Result<C::Item, Error<'a>>,
 ) -> Result<(), Error<'a>> {
     let collection = slot.get_or_insert_with(C::empty);
     let max = max.min(collection.limit());
-    match delimiter {
-        Some(delimiter) => value
-            .split(delimiter)
-            .try_for_each(|piece| append(collection, piece, name, max, &mut convert)),
-        None => append(collection, value, name, max, &mut convert),
+    let Some(delimiter) = delimiter else {
+        return append(collection, value, name, max, &mut convert);
+    };
+    let mut rest = value;
+    while let Some((piece, tail)) = rest.split_once(delimiter) {
+        append(collection, piece, name, max, &mut convert)?;
+        rest = tail;
     }
+    append(collection, rest, name, max, &mut convert)
 }
 
 #[doc(hidden)]

@@ -12,8 +12,8 @@ error[E0277]: `Vec<&'a str>` cannot collect repeated argument values
 note: required by a bound in `getargs_derive::push_values`
  --> src/collection.rs
   |
-  | pub fn push_values<'a, C: Collection>(
-  |                           ^^^^^^^^^^ required by this bound in `push_values`
+  | pub fn push_values<'a, V: Input<'a>, C: Collection>(
+  |                                         ^^^^^^^^^^ required by this bound in `push_values`
   = note: this error originates in the derive macro `GetArgs` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: `Vec<&str>` cannot collect repeated argument values
