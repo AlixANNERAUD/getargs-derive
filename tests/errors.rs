@@ -217,15 +217,18 @@ fn too_many_positionals_when_no_positionals_defined() {
 
 #[test]
 fn suggest_ignores_distant_names() {
-    assert_eq!(__suggest("bogus", &["verbose", "output"]), None);
-    assert_eq!(__suggest("outptu", &["verbose", "output"]), Some("output"));
-    assert_eq!(__suggest("x", &["y"]), None);
-    assert_eq!(__suggest("anything", &[]), None);
+    assert_eq!(__suggest("bogus", &[&["verbose", "output"]]), None);
+    assert_eq!(
+        __suggest("outptu", &[&["verbose", "output"]]),
+        Some("output")
+    );
+    assert_eq!(__suggest("x", &[&["y"]]), None);
+    assert_eq!(__suggest("anything", &[&[]]), None);
 }
 
 #[test]
 fn suggest_prefers_closest_name() {
-    assert_eq!(__suggest("colr", &["colour", "color"]), Some("color"));
+    assert_eq!(__suggest("colr", &[&["colour", "color"]]), Some("color"));
 }
 
 #[test]

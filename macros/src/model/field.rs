@@ -1,5 +1,6 @@
 mod action;
 mod aliases;
+mod command;
 mod defaults;
 mod display;
 mod env;
@@ -59,6 +60,18 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("visible_short_alias", aliases::visible_short_alias),
     Key::new("visible_short_aliases", aliases::visible_short_aliases),
 ];
+
+pub(crate) struct FlattenModel {
+    pub(crate) ident: Ident,
+    pub(crate) name: String,
+    pub(crate) ty: Type,
+    pub(crate) span: Span,
+}
+
+pub(crate) enum Member {
+    Arg(Box<FieldModel>),
+    Flatten(Box<FlattenModel>),
+}
 
 pub(crate) enum FieldKind {
     Positional,
@@ -231,7 +244,47 @@ fn validate_long(key: &str, long: &str, span: Span) -> syn::Result<()> {
     Ok(())
 }
 
-pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
+pub(super) fn build_member(field: &Field) -> syn::Result<Member> {
+    match command::parse_command(field)?.flatten {
+        Some(span) => build_flatten(field, span).map(|model| Member::Flatten(Box::new(model))),
+        None => build_field(field).map(|model| Member::Arg(Box::new(model))),
+    }
+}
+
+fn build_flatten(field: &Field, span: Span) -> syn::Result<FlattenModel> {
+    let Some(ident) = field.ident.clone() else {
+        return Err(syn::Error::new_spanned(
+            field,
+            "GetArgs requires a struct with named fields",
+        ));
+    };
+    let mut errors = Errors::default();
+
+    if option_inner_type(&field.ty).is_some() {
+        errors.push(syn::Error::new_spanned(
+            &field.ty,
+            "`#[command(flatten)]` cannot be used on `Option<T>` fields; flatten the struct itself and make its arguments optional",
+        ));
+    }
+
+    for attr in &field.attrs {
+        if attr.path().is_ident("arg") {
+            errors.push(syn::Error::new_spanned(
+                attr,
+                "`#[arg(...)]` cannot be combined with `#[command(flatten)]`; put the attributes on the fields of the flattened struct",
+            ));
+        }
+    }
+
+    errors.finish(FlattenModel {
+        name: ident.unraw().to_string(),
+        ident,
+        ty: field.ty.clone(),
+        span,
+    })
+}
+
+fn build_field(field: &Field) -> syn::Result<FieldModel> {
     let Some(ident) = field.ident.clone() else {
         return Err(syn::Error::new_spanned(
             field,

@@ -1,28 +1,20 @@
+mod args_trait;
 mod env;
 mod field;
+mod flatten;
 mod help;
 mod parsing;
 mod relations;
 mod validation;
 mod version;
 
-use crate::model::{ContainerModel, FieldModel};
-use field::FieldTokens;
+use crate::model::{ContainerModel, Model};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{DeriveInput, GenericParam};
 
-fn long_names<'a>(container: &ContainerModel, fields: &'a [FieldModel]) -> Vec<&'a str> {
-    let mut long_names: Vec<&str> = fields
-        .iter()
-        .flat_map(|field| {
-            field
-                .long
-                .iter()
-                .chain(field.long_aliases.iter().map(|alias| &alias.name))
-                .map(String::as_str)
-        })
-        .collect();
+fn reserved_longs(container: &ContainerModel) -> Vec<&'static str> {
+    let mut long_names = Vec::new();
     if !container.disable_help_flag {
         long_names.push("help");
     }
@@ -32,11 +24,8 @@ fn long_names<'a>(container: &ContainerModel, fields: &'a [FieldModel]) -> Vec<&
     long_names
 }
 
-pub(crate) fn expand(
-    input: &DeriveInput,
-    container: &ContainerModel,
-    fields: &[FieldModel],
-) -> TokenStream {
+pub(crate) fn expand(input: &DeriveInput, model: &Model) -> TokenStream {
+    let container = &model.container;
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let lifetime_params: Vec<_> = input
@@ -49,29 +38,28 @@ pub(crate) fn expand(
         })
         .collect();
 
-    let mut tokens = FieldTokens::default();
-    for field in fields {
-        tokens.push(field);
-    }
-    let positional_handler = tokens.positional_handler();
-    let FieldTokens {
-        initializers,
-        option_match_arms,
-        finalizers,
-        field_builds,
-        ..
-    } = tokens;
-
-    let long_names = long_names(container, fields);
-    let relation_checks = relations::relation_checks(container, fields);
-    let help_items = help::help_items(container, fields);
+    let args = field::args_trait(&syn::parse_quote! { Self });
+    let reserved_longs = reserved_longs(container);
+    let help_items = help::help_items(input, model);
     let help_handler = help::help_handler(container);
     let (version_items, version_handler) = version::version_tokens(container);
-    let negative_numbers = parsing::negative_numbers(fields);
+    let reserved_match = if help_handler.is_empty() && version_handler.is_empty() {
+        quote! {}
+    } else {
+        quote! {
+            match argument {
+                #help_handler
+                #version_handler
+                _ => {}
+            }
+        }
+    };
+    let args_impl = args_trait::args_impl(input, model);
+    let flatten_checks = flatten::checks(model);
 
     let body = quote! {
-        #(#initializers)*
-        let mut __positional_index = 0_usize;
+        let __context = getargs_derive::__private::Context::new(__raw);
+        let mut __state = #args::init();
 
         while let Some(argument) = options.next_arg().map_err(|error| match error {
             getargs::Error::DoesNotRequireValue(getargs::Opt::Short(short)) => {
@@ -82,84 +70,31 @@ pub(crate) fn expand(
             }
             _ => getargs_derive::Error::InvalidArguments,
         })? {
-            #negative_numbers
-            match argument {
-                #help_handler
-                #version_handler
-                #(#option_match_arms)*
-                #positional_handler
-                getargs::Arg::Short(short) => {
-                    return Err(getargs_derive::Error::UnknownOption {
+            #reserved_match
+            if !#args::try_arg(&mut __state, argument, options, __context)? {
+                return Err(match argument {
+                    getargs::Arg::Positional(value) => {
+                        getargs_derive::Error::UnexpectedArgument(value)
+                    }
+                    getargs::Arg::Short(short) => getargs_derive::Error::UnknownOption {
                         option: getargs_derive::Opt::Short(short),
                         suggestion: core::option::Option::None,
-                    });
-                }
-                getargs::Arg::Long(long) => {
-                    return Err(getargs_derive::Error::UnknownOption {
+                    },
+                    getargs::Arg::Long(long) => getargs_derive::Error::UnknownOption {
                         option: getargs_derive::Opt::Long(long),
-                        suggestion: getargs_derive::__suggest(long, &[#(#long_names),*]),
-                    });
-                }
+                        suggestion: getargs_derive::__suggest(
+                            long,
+                            &[#args::LONGS, &[#(#reserved_longs),*]],
+                        ),
+                    },
+                });
             }
         }
 
-        #relation_checks
-
-        #(#finalizers)*
-
-        Ok(Self {
-            #(#field_builds),*
-        })
+        #args::finish(__state, &mut __getargs_env)
     };
 
-    let parse_methods = if env::has_env(fields) {
-        env::parse_methods(&lifetime_params, body)
-    } else {
-        quote! {
-            /// Parse CLI arguments from an iterator, using `getargs::Options`.
-            ///
-            /// This is the low-level method. Prefer [`from_args`](Self::from_args) for convenience.
-            pub fn parse<'__getargs, I>(options: &mut getargs::Options<&'__getargs str, I>) -> core::result::Result<Self, getargs_derive::Error<'__getargs>>
-            where
-                I: Iterator<Item = &'__getargs str>,
-                #('__getargs: #lifetime_params,)*
-            {
-                Self::__parse(options, core::option::Option::None)
-            }
-
-            #[doc(hidden)]
-            pub fn __parse<'__getargs, I>(
-                options: &mut getargs::Options<&'__getargs str, I>,
-                __raw: core::option::Option<&core::cell::Cell<core::option::Option<&'__getargs str>>>,
-            ) -> core::result::Result<Self, getargs_derive::Error<'__getargs>>
-            where
-                I: Iterator<Item = &'__getargs str>,
-                #('__getargs: #lifetime_params,)*
-            {
-                #body
-            }
-
-            /// Parse CLI arguments directly from an iterator.
-            ///
-            /// Convenience wrapper that creates a `getargs::Options` internally
-            /// and calls [`parse`](Self::parse).
-            ///
-            /// # Example
-            ///
-            /// ```ignore
-            /// let params = MyStruct::from_args(std::env::args().skip(1))?;
-            /// ```
-            pub fn from_args<'__getargs, I>(iter: I) -> core::result::Result<Self, getargs_derive::Error<'__getargs>>
-            where
-                I: Iterator<Item = &'__getargs str>,
-                #('__getargs: #lifetime_params,)*
-            {
-                let raw = core::cell::Cell::new(core::option::Option::None);
-                let mut options = getargs::Options::new(getargs_derive::__RawArgs::new(iter, &raw));
-                Self::__parse(&mut options, core::option::Option::Some(&raw))
-            }
-        }
-    };
+    let parse_methods = env::parse_methods(model, &lifetime_params, body);
 
     quote! {
         impl #impl_generics #name #ty_generics #where_clause {
@@ -169,5 +104,9 @@ pub(crate) fn expand(
 
             #parse_methods
         }
+
+        #args_impl
+
+        #flatten_checks
     }
 }

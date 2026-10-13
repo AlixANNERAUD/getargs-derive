@@ -26,6 +26,7 @@ std = []
 all-features = true
 
 [dependencies]
+getargs = { version = "0.5", default-features = false }
 getargs-derive-macros = { version = "=0.1.0", path = "./macros" }
 
 [dev-dependencies]

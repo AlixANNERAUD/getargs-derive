@@ -1,0 +1,17 @@
+error: `#[arg(...)]` cannot be combined with `#[command(flatten)]`; put the attributes on the fields of the flattened struct
+  --> tests/ui/flatten_attributes.rs:12:5
+   |
+12 |     #[arg(long)]
+   |     ^^^^^^^^^^^^
+
+error: `flatten` does not take a value
+  --> tests/ui/flatten_attributes.rs:14:15
+   |
+14 |     #[command(flatten = true)]
+   |               ^^^^^^^
+
+error: unknown `command` attribute `subcommand`; supported attributes are: `flatten`
+  --> tests/ui/flatten_attributes.rs:16:15
+   |
+16 |     #[command(subcommand)]
+   |               ^^^^^^^^^^

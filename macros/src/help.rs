@@ -183,6 +183,27 @@ fn description(field: &FieldModel, mode: Mode) -> Text {
     text
 }
 
+pub(crate) fn entry_label(field: &FieldModel) -> String {
+    match field.kind {
+        FieldKind::Positional => positional_label(field),
+        FieldKind::Flag(_) | FieldKind::Option => option_label(field),
+    }
+}
+
+pub(crate) fn usage_label(field: &FieldModel) -> String {
+    match (field.parsing.last, field.is_optional()) {
+        (false, _) => positional_label(field),
+        (true, true) => format!("[-- <{}>]", field.value_name),
+        (true, false) => format!("-- <{}>", field.value_name),
+    }
+}
+
+pub(crate) fn entry_description(field: &FieldModel, mode: Mode) -> (TokenStream, bool) {
+    let text = description(field, mode);
+    let wraps = text.as_static().is_some();
+    (text.into_tokens(quote! { "" }), wraps)
+}
+
 fn positional_label(field: &FieldModel) -> String {
     if field.is_optional() {
         format!("[{}]", field.value_name)
@@ -278,7 +299,7 @@ pub(crate) fn has_long_help(container: &ContainerModel, fields: &[FieldModel]) -
             .any(|field| !field.hide && field.long_help.is_some())
 }
 
-fn help_flag_description(mode: Mode, long_help: bool) -> &'static str {
+pub(crate) fn help_flag_description(mode: Mode, long_help: bool) -> &'static str {
     match (mode, long_help) {
         (_, false) => "Print help",
         (Mode::Short, true) => "Print help (see more with '--help')",
@@ -290,6 +311,36 @@ fn push_paragraph(output: &mut String, text: Option<&str>, style: &Style) {
     if let Some(text) = text.filter(|text| !text.is_empty()) {
         output.push_str(&wrap::wrap(text, style.term_width));
         output.push_str("\n\n");
+    }
+}
+
+pub(crate) fn usage_prefix(container: &ContainerModel, mode: Mode) -> String {
+    let style = Style {
+        mode,
+        term_width: container.max_term_width,
+    };
+    let about = match mode {
+        Mode::Short => container.about.as_deref(),
+        Mode::Long => container
+            .long_about
+            .as_deref()
+            .or(container.about.as_deref()),
+    };
+    let mut prefix = String::new();
+    push_paragraph(&mut prefix, container.before_help.as_deref(), &style);
+    push_paragraph(&mut prefix, about, &style);
+    prefix.push_str("Usage: ");
+    prefix
+}
+
+pub(crate) fn after_text(container: &ContainerModel) -> String {
+    match container
+        .after_help
+        .as_deref()
+        .filter(|text| !text.is_empty())
+    {
+        Some(after) => format!("\n\n{}", wrap::wrap(after, container.max_term_width)),
+        None => String::new(),
     }
 }
 
@@ -309,11 +360,7 @@ pub(crate) fn help_text(
         match field.kind {
             FieldKind::Positional => {
                 usage.push(' ');
-                match (field.parsing.last, field.is_optional()) {
-                    (false, _) => usage.push_str(&positional_label(field)),
-                    (true, true) => usage.push_str(&format!("[-- <{}>]", field.value_name)),
-                    (true, false) => usage.push_str(&format!("-- <{}>", field.value_name)),
-                }
+                usage.push_str(&usage_label(field));
             }
             FieldKind::Flag(_) | FieldKind::Option => has_options = true,
         }
@@ -326,10 +373,7 @@ pub(crate) fn help_text(
                 .fields
                 .into_iter()
                 .map(|field| Entry {
-                    label: match field.kind {
-                        FieldKind::Positional => positional_label(field),
-                        FieldKind::Flag(_) | FieldKind::Option => option_label(field),
-                    },
+                    label: entry_label(field),
                     description: description(field, mode),
                 })
                 .collect();
@@ -361,17 +405,7 @@ pub(crate) fn help_text(
         }
     }
 
-    let about = match mode {
-        Mode::Short => container.about.as_deref(),
-        Mode::Long => container
-            .long_about
-            .as_deref()
-            .or(container.about.as_deref()),
-    };
-    let mut prefix = String::new();
-    push_paragraph(&mut prefix, container.before_help.as_deref(), &style);
-    push_paragraph(&mut prefix, about, &style);
-    prefix.push_str("Usage: ");
+    let prefix = usage_prefix(container, mode);
 
     let mut suffix = Text::default();
     if has_options {
@@ -381,14 +415,7 @@ pub(crate) fn help_text(
     for (title, entries) in sections {
         render_section(&mut suffix, title, entries, &style);
     }
-    if let Some(after) = container
-        .after_help
-        .as_deref()
-        .filter(|text| !text.is_empty())
-    {
-        suffix.push_str("\n\n");
-        suffix.push_str(&wrap::wrap(after, style.term_width));
-    }
+    suffix.push_str(&after_text(container));
 
     let name = command_name(container);
 

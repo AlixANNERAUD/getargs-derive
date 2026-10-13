@@ -39,10 +39,10 @@ fn distance(input: &str, candidate: &str) -> Option<usize> {
 /// Returns the candidate closest to `input` by edit distance, if it is close enough to be a
 /// likely typo.
 #[doc(hidden)]
-pub fn suggest(input: &str, candidates: &[&'static str]) -> Option<&'static str> {
+pub fn suggest(input: &str, candidates: &[&[&'static str]]) -> Option<&'static str> {
     let input_length = input.chars().count();
     let mut best: Option<(usize, &'static str)> = None;
-    for &candidate in candidates {
+    for &candidate in candidates.iter().flat_map(|group| group.iter()) {
         let Some(distance) = distance(input, candidate) else {
             continue;
         };

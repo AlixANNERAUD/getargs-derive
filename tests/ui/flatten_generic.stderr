@@ -1,0 +1,5 @@
+error: `#[command(flatten)]` is not supported in structs with type or const parameters
+  --> tests/ui/flatten_generic.rs:13:15
+   |
+13 |     #[command(flatten)]
+   |               ^^^^^^^

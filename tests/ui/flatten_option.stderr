@@ -1,0 +1,5 @@
+error: `#[command(flatten)]` cannot be used on `Option<T>` fields; flatten the struct itself and make its arguments optional
+  --> tests/ui/flatten_option.rs:12:12
+   |
+12 |     inner: Option<Inner>,
+   |            ^^^^^^^^^^^^^

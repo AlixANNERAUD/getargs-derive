@@ -8,6 +8,7 @@
 [guide-relations]: crate::guide::relations
 [guide-validation]: crate::guide::validation
 [guide-parsing]: crate::guide::parsing
+[guide-flatten]: crate::guide::flatten
 [guide-help]: crate::guide::help
 [guide-version]: crate::guide::version
 [guide-errors]: crate::guide::errors

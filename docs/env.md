@@ -37,7 +37,7 @@ If it does not parse, `parse` returns `Error::InvalidValue` with the argument na
 
 ## Reading the Process Environment
 
-A struct with at least one `env` field gets two more methods, `parse_with_env` and `from_args_with_env`, taking a lookup function `FnMut(&str) -> Option<&'a str>` called with a variable name.
+A struct with at least one `env` field, or that [flattens][guide-flatten] other structs, gets two more methods, `parse_with_env` and `from_args_with_env`, taking a lookup function `FnMut(&str) -> Option<&'a str>` called with a variable name.
 They work in `no_std` builds: the lookup can read a configuration block, a bootloader command line, or a test fixture.
 
 With the `std` feature of this crate, `parse` and `from_args` read the process environment with `std::env::var`:
@@ -86,5 +86,6 @@ The macro reports a compile error, pointing at the offending attribute or field,
 - calling `parse` or `from_args` on a struct with `env` fields without the `std` feature.
 
 [guide-defaults]: defaults.md
+[guide-flatten]: flatten.md
 [guide-help]: help.md
 [guide-validation]: validation.md
