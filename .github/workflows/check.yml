@@ -59,6 +59,19 @@ jobs:
           files: lcov.info
           fail_ci_if_error: true
 
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.88
+
+      - name: Test without Features
+        run: cargo test --workspace --no-default-features -- --exact --skip ui
+
+      - name: Test with all Features
+        run: cargo test --workspace --all-features -- --exact --skip ui
+
   package:
     runs-on: ubuntu-latest
     steps:

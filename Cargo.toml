@@ -7,6 +7,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/AlixANNERAUD/getargs-derive"
 authors = ["Alix ANNERAUD <alix@anneraud.fr>"]
+rust-version = "1.88"
 
 [package]
 name = "getargs-derive"
@@ -15,9 +16,13 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-description = "A derive macro for the getargs crate — auto-generate CLI argument parsing for your structs"
-keywords = ["cli", "arguments", "args", "parse", "derive"]
-categories = ["command-line-interface"]
+rust-version.workspace = true
+description = "Clap-style #[derive] command-line argument parser for no_std and embedded Rust: zero allocation, compile-time help, subcommands. Built on getargs."
+readme = "README.md"
+homepage = "https://github.com/AlixANNERAUD/getargs-derive"
+documentation = "https://docs.rs/getargs-derive"
+keywords = ["cli", "argument-parser", "no-std", "derive", "embedded"]
+categories = ["command-line-interface", "no-std", "no-std::no-alloc", "embedded", "parser-implementations"]
 
 [features]
 alloc = []
@@ -26,6 +31,7 @@ heapless = ["dep:heapless"]
 
 [package.metadata.docs.rs]
 all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 getargs = { version = "0.5", default-features = false }
