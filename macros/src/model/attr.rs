@@ -1,16 +1,16 @@
 use quote::ToTokens;
 use syn::{Ident, Lit, LitStr, Token, meta::ParseNestedMeta};
 
-pub(super) type Parser<T> = fn(&ParseNestedMeta, &mut T) -> syn::Result<()>;
+pub(crate) type Parser<T> = fn(&ParseNestedMeta, &mut T) -> syn::Result<()>;
 
-pub(super) struct Key<T> {
+pub(crate) struct Key<T> {
     name: &'static str,
     legacy: bool,
     parse: Parser<T>,
 }
 
 impl<T> Key<T> {
-    pub(super) const fn new(name: &'static str, parse: Parser<T>) -> Self {
+    pub(crate) const fn new(name: &'static str, parse: Parser<T>) -> Self {
         Self {
             name,
             legacy: false,
@@ -18,7 +18,7 @@ impl<T> Key<T> {
         }
     }
 
-    pub(super) const fn legacy(name: &'static str, parse: Parser<T>) -> Self {
+    pub(crate) const fn legacy(name: &'static str, parse: Parser<T>) -> Self {
         Self {
             name,
             legacy: true,
@@ -37,7 +37,7 @@ fn supported_keys<T>(keys: &[Key<T>]) -> String {
         .join(", ")
 }
 
-pub(super) fn dispatch<T>(
+pub(crate) fn dispatch<T>(
     meta: ParseNestedMeta,
     attribute: &str,
     keys: &[Key<T>],
@@ -60,7 +60,7 @@ pub(super) fn dispatch<T>(
     }
 }
 
-pub(super) fn set_once<T>(
+pub(crate) fn set_once<T>(
     slot: &mut Option<T>,
     value: T,
     meta: &ParseNestedMeta,
@@ -73,14 +73,14 @@ pub(super) fn set_once<T>(
     Ok(())
 }
 
-pub(super) fn reject_value(meta: &ParseNestedMeta, key: &str) -> syn::Result<()> {
+pub(crate) fn reject_value(meta: &ParseNestedMeta, key: &str) -> syn::Result<()> {
     if meta.input.peek(Token![=]) || meta.input.peek(syn::token::Paren) {
         return Err(meta.error(format!("`{key}` does not take a value")));
     }
     Ok(())
 }
 
-pub(super) fn require_value<'a>(
+pub(crate) fn require_value<'a>(
     meta: &'a ParseNestedMeta,
     key: &str,
     example: &str,
@@ -91,7 +91,7 @@ pub(super) fn require_value<'a>(
     meta.value()
 }
 
-pub(super) fn parse_string(
+pub(crate) fn parse_string(
     meta: &ParseNestedMeta,
     key: &str,
     example: &str,

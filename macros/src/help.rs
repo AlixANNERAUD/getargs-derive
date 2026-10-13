@@ -1,11 +1,14 @@
+mod text;
+
 use crate::model::{ContainerModel, DefaultValue, FieldKind, FieldModel, FlagAction};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
-use syn::{Expr, ExprLit, Lit, UnOp};
+use syn::{Expr, ExprLit, Lit, UnOp, ext::IdentExt};
+use text::{Segment, Text};
 
 struct Entry {
     label: String,
-    description: String,
+    description: Text,
 }
 
 fn expr_text(expr: &Expr) -> String {
@@ -44,18 +47,43 @@ fn default_text(default: &DefaultValue) -> String {
     }
 }
 
-fn description(field: &FieldModel) -> String {
+fn value_enum_default(field: &FieldModel, default: &DefaultValue) -> Option<Segment> {
+    let DefaultValue::Expr(Expr::Path(path)) = default else {
+        return None;
+    };
+    let ident = path.path.segments.last()?.ident.unraw().to_string();
+    let fallback = expr_text(&Expr::Path(path.clone()));
+    let value_ty = &field.value_ty;
+    Some(Segment::Str(quote! {
+        getargs_derive::__value_name(
+            <#value_ty as getargs_derive::ValueEnum>::__VARIANT_IDENTS,
+            <#value_ty as getargs_derive::ValueEnum>::POSSIBLE_VALUES,
+            #ident,
+            #fallback,
+        )
+    }))
+}
+
+fn description(field: &FieldModel) -> Text {
     let mut parts = Vec::new();
     if let Some(help) = field.help.as_deref().filter(|help| !help.is_empty()) {
-        parts.push(help.to_owned());
+        parts.push(vec![Segment::Text(help.to_owned())]);
     }
     if let Some(env) = &field.env {
-        parts.push(format!("[env: {env}=]"));
+        parts.push(vec![Segment::Text(format!("[env: {env}=]"))]);
     }
-    if let (Some(default), FieldKind::Positional | FieldKind::Option) =
-        (&field.default, &field.kind)
-    {
-        parts.push(format!("[default: {}]", default_text(default)));
+    let takes_value = matches!(field.kind, FieldKind::Positional | FieldKind::Option);
+    if let (Some(default), true) = (&field.default, takes_value) {
+        let value = field
+            .value_enum
+            .then(|| value_enum_default(field, default))
+            .flatten()
+            .unwrap_or_else(|| Segment::Text(default_text(default)));
+        parts.push(vec![
+            Segment::Text("[default: ".to_owned()),
+            value,
+            Segment::Text("]".to_owned()),
+        ]);
     }
     let aliases: Vec<String> = field
         .long_aliases
@@ -64,7 +92,10 @@ fn description(field: &FieldModel) -> String {
         .map(|alias| format!("--{}", alias.name))
         .collect();
     if !aliases.is_empty() {
-        parts.push(format!("[aliases: {}]", aliases.join(", ")));
+        parts.push(vec![Segment::Text(format!(
+            "[aliases: {}]",
+            aliases.join(", ")
+        ))]);
     }
     let short_aliases: Vec<String> = field
         .short_aliases
@@ -73,9 +104,29 @@ fn description(field: &FieldModel) -> String {
         .map(|alias| format!("-{}", alias.name))
         .collect();
     if !short_aliases.is_empty() {
-        parts.push(format!("[short aliases: {}]", short_aliases.join(", ")));
+        parts.push(vec![Segment::Text(format!(
+            "[short aliases: {}]",
+            short_aliases.join(", ")
+        ))]);
     }
-    parts.join(" ")
+    if field.value_enum && takes_value {
+        let value_ty = &field.value_ty;
+        parts.push(vec![
+            Segment::Text("[possible values: ".to_owned()),
+            Segment::List(quote! { <#value_ty as getargs_derive::ValueEnum>::POSSIBLE_VALUES }),
+            Segment::Text("]".to_owned()),
+        ]);
+    }
+    let mut text = Text::default();
+    for (index, part) in parts.into_iter().enumerate() {
+        if index > 0 {
+            text.push_str(" ");
+        }
+        for segment in part {
+            text.push(segment);
+        }
+    }
+    text
 }
 
 fn positional_label(field: &FieldModel) -> String {
@@ -101,7 +152,7 @@ fn option_label(field: &FieldModel) -> String {
     label
 }
 
-fn render_section(output: &mut String, title: &str, entries: &[Entry]) {
+fn render_section(output: &mut Text, title: &str, entries: Vec<Entry>) {
     if entries.is_empty() {
         return;
     }
@@ -114,7 +165,7 @@ fn render_section(output: &mut String, title: &str, entries: &[Entry]) {
 
     output.push_str("\n\n");
     output.push_str(title);
-    output.push(':');
+    output.push_str(":");
     for entry in entries {
         output.push_str("\n  ");
         if entry.description.is_empty() {
@@ -122,14 +173,20 @@ fn render_section(output: &mut String, title: &str, entries: &[Entry]) {
             continue;
         }
         output.push_str(&format!("{:<width$}  ", entry.label));
-        for (index, line) in entry.description.lines().enumerate() {
-            if index > 0 {
-                output.push('\n');
-                if !line.is_empty() {
-                    output.push_str(&indent);
+        for segment in entry.description.segments() {
+            let Segment::Text(description) = segment else {
+                output.push(segment);
+                continue;
+            };
+            for (index, line) in description.lines().enumerate() {
+                if index > 0 {
+                    output.push_str("\n");
+                    if !line.is_empty() {
+                        output.push_str(&indent);
+                    }
                 }
+                output.push_str(line);
             }
-            output.push_str(line);
         }
     }
 }
@@ -160,14 +217,14 @@ pub(crate) fn help_text(container: &ContainerModel, fields: &[FieldModel]) -> To
     if !container.disable_help_flag {
         options.push(Entry {
             label: "-h, --help".to_owned(),
-            description: "Print help".to_owned(),
+            description: plain("Print help"),
         });
     }
 
     if container.version.is_some() {
         options.push(Entry {
             label: "-V, --version".to_owned(),
-            description: "Print version".to_owned(),
+            description: plain("Print version"),
         });
     }
 
@@ -178,17 +235,23 @@ pub(crate) fn help_text(container: &ContainerModel, fields: &[FieldModel]) -> To
     }
     prefix.push_str("Usage: ");
 
-    let mut suffix = String::new();
+    let mut suffix = Text::default();
     if !options.is_empty() {
         suffix.push_str(" [OPTIONS]");
     }
     suffix.push_str(&usage);
-    render_section(&mut suffix, "Arguments", &arguments);
-    render_section(&mut suffix, "Options", &options);
+    render_section(&mut suffix, "Arguments", arguments);
+    render_section(&mut suffix, "Options", options);
 
     let name = command_name(container);
 
-    quote! { ::core::concat!(#prefix, #name, #suffix) }
+    suffix.into_tokens(quote! { ::core::concat!(#prefix, #name) })
+}
+
+fn plain(text: &str) -> Text {
+    let mut output = Text::default();
+    output.push_str(text);
+    output
 }
 
 pub(crate) fn command_name(container: &ContainerModel) -> TokenStream {

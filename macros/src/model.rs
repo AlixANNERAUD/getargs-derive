@@ -1,7 +1,7 @@
-mod attr;
+pub(crate) mod attr;
 mod container;
 mod doc;
-mod errors;
+pub(crate) mod errors;
 mod field;
 mod relations;
 mod types;

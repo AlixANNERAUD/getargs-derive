@@ -1,0 +1,5 @@
+error[E0277]: the trait bound `u16: ValueEnum` is not satisfied
+ --> tests/ui/value_enum_missing_impl.rs:6:11
+  |
+6 |     port: u16,
+  |           ^^^ the trait `ValueEnum` is not implemented for `u16`

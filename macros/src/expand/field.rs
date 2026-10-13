@@ -30,7 +30,17 @@ fn option_pattern(field: &FieldModel) -> TokenStream {
 
 fn parse_value(field: &FieldModel, value: TokenStream) -> TokenStream {
     let error_name = field.error_name();
-    if field.is_str {
+    let value_ty = &field.value_ty;
+    if field.value_enum {
+        quote! {
+            <#value_ty as getargs_derive::ValueEnum>::from_value(#value).ok_or(
+                getargs_derive::Error::InvalidValue {
+                    name: #error_name,
+                    value: #value,
+                },
+            )?
+        }
+    } else if field.is_str {
         value
     } else {
         quote! {
@@ -45,6 +55,9 @@ fn parse_value(field: &FieldModel, value: TokenStream) -> TokenStream {
 fn fallback(field: &FieldModel) -> TokenStream {
     let error_name = field.error_name();
     match (&field.default, &field.kind) {
+        (Some(DefaultValue::Literal(literal)), _) if field.value_enum => {
+            parse_value(field, quote! { #literal })
+        }
         (Some(DefaultValue::Literal(literal)), _) if field.is_str => quote! { #literal },
         (Some(DefaultValue::Literal(literal)), _) => quote! {
             core::str::FromStr::from_str(#literal).map_err(|_| getargs_derive::Error::InvalidValue {

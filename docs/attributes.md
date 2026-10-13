@@ -13,6 +13,7 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | `#[arg(env = "NAME")]`          | Falls back to the environment variable `NAME` when absent from the command line. A bare `env` uses the upper-cased field name. See [Environment Variables][guide-env]. |
 | `#[arg(help = "text")]`           | Description shown in the generated help. Overrides the field's doc comment. See [Generated Help][guide-help]. |
 | `#[arg(value_name = "NAME")]`     | Placeholder shown in the generated help (`<NAME>`). Defaults to the upper-cased field name. Not allowed on flags. |
+| `#[arg(value_enum)]`              | Field of a `ValueEnum` type: parsed by variant name, with its possible values listed in the help. See [Value Enums][guide-value-enum]. |
 | `#[arg(action = Count)]`          | Flag counting its occurrences on an integer field. See [Flag Actions][guide-actions].                   |
 | `#[arg(action = SetFalse)]`       | Flag on a `bool` field that defaults to `true` and is set to `false` by its presence.                   |
 | `#[arg(action = SetTrue)]`        | Explicit form of the default `bool` flag behaviour.                                                     |
@@ -106,4 +107,5 @@ The macro reports a compile error, pointing at the offending attribute or field,
 [guide-env]: env.md
 [guide-help]: help.md
 [guide-positionals]: positionals.md
+[guide-value-enum]: value_enum.md
 [guide-version]: version.md

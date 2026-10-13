@@ -1,6 +1,7 @@
 [guide-attributes]: crate::guide::attributes
 [guide-actions]: crate::guide::actions
 [guide-aliases]: crate::guide::aliases
+[guide-value-enum]: crate::guide::value_enum
 [guide-defaults]: crate::guide::defaults
 [guide-env]: crate::guide::env
 [guide-positionals]: crate::guide::positionals

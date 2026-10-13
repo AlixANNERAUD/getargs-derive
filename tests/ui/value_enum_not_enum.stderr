@@ -1,0 +1,11 @@
+error: ValueEnum can only be derived for enums with unit variants
+ --> tests/ui/value_enum_not_enum.rs:4:1
+  |
+4 | struct Mode {
+  | ^^^^^^
+
+error: ValueEnum can only be derived for enums with unit variants
+ --> tests/ui/value_enum_not_enum.rs:9:1
+  |
+9 | union Level {
+  | ^^^^^
