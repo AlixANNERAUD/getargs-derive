@@ -20,7 +20,9 @@ Ordinary merges never publish: `release_always = false` restricts publishing to 
 
 ## SemVer policy
 
-The proposed bump is derived from [Conventional Commits](https://www.conventionalcommits.org) since the last release:
+Pull requests are squash-merged, so each pull request title becomes one commit on `main`. The `PR Title` workflow requires titles to follow [Conventional Commits](https://www.conventionalcommits.org) (`feat: ...`, `fix: ...`, `feat!: ...`). Merge commits and release commits are left out of the changelog.
+
+The proposed bump is derived from these commits since the last release:
 
 | Commit | `>= 1.0.0` | `0.x.y` |
 | --- | --- | --- |

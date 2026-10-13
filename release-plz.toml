@@ -2,7 +2,7 @@
 release_always = false
 semver_check = true
 dependencies_update = false
-pr_name = "{% if version %}Release v{{ version }}{% else %}Release{% endif %}"
+pr_name = "{% if version %}chore: release v{{ version }}{% else %}chore: release{% endif %}"
 git_release_body = "{{ changelog }}"
 
 [changelog]
@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 protect_breaking_commits = true
 sort_commits = "oldest"
 commit_parsers = [
+  { message = "^Merge pull request", skip = true },
+  { message = "^chore: release", skip = true },
   { message = "^feat", group = "Added" },
   { message = "^fix", group = "Fixed" },
   { message = "^perf", group = "Performance" },
