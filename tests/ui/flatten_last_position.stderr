@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: a `last` positional argument must be the final positional argument, flattened fields included
+  --> tests/ui/flatten_last_position.rs:11:15
+   |
+11 |     #[command(flatten)]
+   |               ^^^^^^^ evaluation of `_` failed here

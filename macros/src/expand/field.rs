@@ -1,18 +1,22 @@
 use super::env::env_lookup;
 use super::parsing;
 use super::validation::convert;
-use crate::model::{DefaultValue, FieldKind, FieldModel, FlagAction};
+use crate::model::{DefaultValue, FieldKind, FieldModel, FlagAction, FlattenModel, Slot};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use syn::{Ident, Index, Type};
 
 #[derive(Default)]
 pub(super) struct FieldTokens {
+    pub(super) state_types: Vec<TokenStream>,
     pub(super) initializers: Vec<TokenStream>,
+    pub(super) value_idents: Vec<Ident>,
+    pub(super) prologue: Vec<TokenStream>,
     pub(super) option_match_arms: Vec<TokenStream>,
-    pub(super) positional_match_arms: Vec<TokenStream>,
+    pub(super) steps: Vec<TokenStream>,
+    pub(super) filled: Vec<TokenStream>,
     pub(super) finalizers: Vec<TokenStream>,
     pub(super) field_builds: Vec<TokenStream>,
-    last_positional: Option<usize>,
 }
 
 fn option_pattern(field: &FieldModel) -> TokenStream {
@@ -47,16 +51,66 @@ fn fallback(field: &FieldModel) -> TokenStream {
     }
 }
 
+pub(super) fn args_trait(ty: &Type) -> TokenStream {
+    quote! { <#ty as getargs_derive::__private::Args<'__getargs>> }
+}
+
+fn all(conditions: &[TokenStream]) -> TokenStream {
+    if conditions.is_empty() {
+        quote! { true }
+    } else {
+        quote! { #(#conditions)&&* }
+    }
+}
+
 impl FieldTokens {
-    pub(super) fn push(&mut self, field: &FieldModel) {
+    pub(super) fn push(&mut self, slot: &Slot, negative_numbers: bool) {
+        match slot {
+            Slot::Arg(field) => self.push_arg(field),
+            Slot::Flatten(flatten) => self.push_flatten(flatten, negative_numbers),
+        }
+    }
+
+    fn push_flatten(&mut self, flatten: &FlattenModel, negative_numbers: bool) {
+        let index = Index::from(self.state_types.len());
+        let field_ident = &flatten.ident;
+        let value_ident = format_ident!("__value_{}", flatten.name);
+        let args = args_trait(&flatten.ty);
+        let earlier = all(&self.filled);
+
+        self.state_types.push(quote! { #args::State });
+        self.initializers.push(quote! { #args::init() });
+        self.steps.push(quote! {
+            if #args::try_arg(
+                &mut __state.#index,
+                __argument,
+                __options,
+                __context.child(__last, #negative_numbers, !(#earlier)),
+            )? {
+                return core::result::Result::Ok(true);
+            }
+        });
+        self.filled.push(quote! { #args::filled(&__state.#index) });
+        self.finalizers.push(quote! {
+            let #value_ident = #args::finish(#value_ident, __getargs_env)?;
+        });
+        self.field_builds
+            .push(quote! { #field_ident: #value_ident });
+        self.value_idents.push(value_ident);
+    }
+
+    fn push_arg(&mut self, field: &FieldModel) {
+        let index = Index::from(self.state_types.len());
+        let slot = quote! { __state.#index };
         let field_ident = &field.ident;
         let field_type = &field.ty;
         let value_type = &field.value_ty;
         let value_ident = format_ident!("__value_{}", field.name);
 
-        self.initializers.push(quote! {
-            let mut #value_ident: core::option::Option<#value_type> = core::option::Option::None;
-        });
+        self.state_types
+            .push(quote! { core::option::Option<#value_type> });
+        self.initializers
+            .push(quote! { core::option::Option::None });
 
         match field.kind {
             FieldKind::Flag(action) => {
@@ -65,7 +119,7 @@ impl FieldTokens {
                     FlagAction::SetTrue => quote! { true },
                     FlagAction::SetFalse => quote! { false },
                     FlagAction::Count => quote! {
-                        match #value_ident {
+                        match #slot {
                             core::option::Option::Some(count) => count.saturating_add(1),
                             core::option::Option::None => 1,
                         }
@@ -73,7 +127,8 @@ impl FieldTokens {
                 };
                 self.option_match_arms.push(quote! {
                     #pattern => {
-                        #value_ident = core::option::Option::Some(#update);
+                        #slot = core::option::Option::Some(#update);
+                        return core::result::Result::Ok(true);
                     }
                 });
             }
@@ -88,21 +143,19 @@ impl FieldTokens {
                 self.option_match_arms.push(quote! {
                     #pattern => {
                         let value = #value;
-                        #value_ident = core::option::Option::Some(#parsed);
+                        #slot = core::option::Option::Some(#parsed);
+                        return core::result::Result::Ok(true);
                     }
                 });
             }
             FieldKind::Positional => {
-                let index = self.positional_match_arms.len();
-                if field.parsing.last {
-                    self.last_positional = Some(index);
-                }
                 let parsed = convert(field, quote! { value }, &field.error_name());
-                self.positional_match_arms.push(quote! {
-                    #index => {
-                        #value_ident = core::option::Option::Some(#parsed);
-                    }
-                });
+                let earlier = all(&self.filled);
+                self.prologue.push(parsing::negative_positional(
+                    field, &slot, &earlier, &parsed,
+                ));
+                self.steps.push(parsing::positional(field, &slot, &parsed));
+                self.filled.push(quote! { #slot.is_some() });
             }
         }
 
@@ -120,28 +173,6 @@ impl FieldTokens {
 
         self.field_builds
             .push(quote! { #field_ident: #value_ident });
-    }
-
-    pub(super) fn positional_handler(&self) -> TokenStream {
-        let positional_match_arms = &self.positional_match_arms;
-        let last_positional = parsing::last_positional(self.last_positional);
-        if positional_match_arms.is_empty() {
-            quote! {
-                getargs::Arg::Positional(value) => {
-                    return Err(getargs_derive::Error::UnexpectedArgument(value));
-                }
-            }
-        } else {
-            quote! {
-                getargs::Arg::Positional(value) => {
-                    #last_positional
-                    match __positional_index {
-                        #(#positional_match_arms)*
-                        _ => return Err(getargs_derive::Error::UnexpectedArgument(value)),
-                    }
-                    __positional_index += 1;
-                }
-            }
-        }
+        self.value_idents.push(value_ident);
     }
 }

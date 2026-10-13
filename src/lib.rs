@@ -16,6 +16,10 @@ mod parsing;
 mod suggest;
 mod value_enum;
 
+#[doc(hidden)]
+#[path = "private.rs"]
+pub mod __private;
+
 pub use error::*;
 pub use value_enum::{ParseValueEnumError, ValueEnum};
 

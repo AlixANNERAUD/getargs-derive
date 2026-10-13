@@ -25,7 +25,7 @@ use syn::{DeriveInput, parse_macro_input};
 pub fn derive_get_args(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     match model::parse(&input) {
-        Ok((container, fields)) => expand::expand(&input, &container, &fields).into(),
+        Ok(model) => expand::expand(&input, &model).into(),
         Err(error) => error.to_compile_error().into(),
     }
 }

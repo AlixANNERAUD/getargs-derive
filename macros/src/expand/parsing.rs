@@ -1,15 +1,23 @@
-use crate::model::{FieldKind, FieldModel};
+use crate::model::FieldModel;
 use proc_macro2::TokenStream;
 use quote::quote;
 
+fn allows_negative_numbers(field: &FieldModel) -> TokenStream {
+    if field.parsing.allow_negative_numbers {
+        quote! { true }
+    } else {
+        quote! { __context.negative_numbers }
+    }
+}
+
 pub(super) fn option_value(field: &FieldModel, missing: TokenStream) -> TokenStream {
-    let next = quote! { options.value().map_err(|_| #missing)? };
+    let next = quote! { __options.value().map_err(|_| #missing)? };
     if field.parsing.allow_hyphen_values {
         return quote! { #next };
     }
-    let allow_negative_numbers = field.parsing.allow_negative_numbers;
+    let allow_negative_numbers = allows_negative_numbers(field);
     quote! {
-        match options.value_opt() {
+        match __options.value_opt() {
             core::option::Option::Some(value) => value,
             core::option::Option::None => {
                 let value = #next;
@@ -22,42 +30,55 @@ pub(super) fn option_value(field: &FieldModel, missing: TokenStream) -> TokenStr
     }
 }
 
-pub(super) fn negative_numbers(fields: &[FieldModel]) -> TokenStream {
-    let indices: Vec<usize> = fields
-        .iter()
-        .filter(|field| matches!(field.kind, FieldKind::Positional))
-        .enumerate()
-        .filter(|(_, field)| field.parsing.allow_negative_numbers)
-        .map(|(index, _)| index)
-        .collect();
-    if indices.is_empty() {
-        return quote! {};
-    }
+pub(super) fn negative_positional(
+    field: &FieldModel,
+    slot: &TokenStream,
+    earlier: &TokenStream,
+    parsed: &TokenStream,
+) -> TokenStream {
+    let allow_negative_numbers = allows_negative_numbers(field);
+    let store = if field.parsing.last {
+        quote! { return Err(getargs_derive::Error::UnexpectedArgument(value)); }
+    } else {
+        quote! {
+            #slot = core::option::Option::Some(#parsed);
+            return core::result::Result::Ok(true);
+        }
+    };
     quote! {
-        let argument = match argument {
-            getargs::Arg::Short(short) if matches!(__positional_index, #(#indices)|*) => {
-                match getargs_derive::__negative_number(__raw, short) {
-                    core::option::Option::Some(number) => {
-                        let _ = options.value_opt();
-                        getargs::Arg::Positional(number)
-                    }
-                    core::option::Option::None => argument,
+        if let getargs::Arg::Short(short) = __argument {
+            if #allow_negative_numbers
+                && !__context.blocked
+                && #earlier
+                && #slot.is_none()
+            {
+                if let core::option::Option::Some(value) =
+                    getargs_derive::__negative_number(__context.raw, short)
+                {
+                    let _ = __options.value_opt();
+                    #store
                 }
             }
-            argument => argument,
-        };
+        }
     }
 }
 
-pub(super) fn last_positional(index: Option<usize>) -> TokenStream {
-    let Some(index) = index else {
-        return quote! {};
+pub(super) fn positional(
+    field: &FieldModel,
+    slot: &TokenStream,
+    parsed: &TokenStream,
+) -> TokenStream {
+    let accepts = if field.parsing.last {
+        quote! { __options.opts_ended() }
+    } else {
+        quote! { !(__last && __options.opts_ended()) }
     };
     quote! {
-        if options.opts_ended() {
-            __positional_index = __positional_index.max(#index);
-        } else if __positional_index == #index {
-            return Err(getargs_derive::Error::UnexpectedArgument(value));
+        if let getargs::Arg::Positional(value) = __argument {
+            if #slot.is_none() && #accepts {
+                #slot = core::option::Option::Some(#parsed);
+                return core::result::Result::Ok(true);
+            }
         }
     }
 }

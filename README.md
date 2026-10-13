@@ -58,6 +58,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 - [Argument Relations][guide-relations]: `conflicts_with`, `requires`, `required_unless_present` and argument groups.
 - [Value Validation][guide-validation]: `value_parser` functions and ranges, and `possible_values`.
 - [Parsing Modes][guide-parsing]: values starting with `-`, negative numbers and `last` positionals, and the limits imposed by `getargs`.
+- [Flattened Structs][guide-flatten]: `#[command(flatten)]` to reuse the arguments of another struct.
 - [Generated Help][guide-help]: the `HELP` and `LONG_HELP` constants, `-h`/`--help`, `disable_help_flag`, and help customization (hidden arguments, headings, ordering, extra text and wrapping).
 - [Version Flag][guide-version]: `#[command(version)]`, `-V`/`--version` and the `VERSION`/`VERSION_TEXT` constants.
 - [Error Handling][guide-errors]: the `Error` enum, its Clap-style messages and "did you mean" suggestions.
@@ -84,6 +85,7 @@ Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
 [guide-relations]: docs/relations.md
 [guide-validation]: docs/validation.md
 [guide-parsing]: docs/parsing.md
+[guide-flatten]: docs/flatten.md
 [guide-help]: docs/help.md
 [guide-version]: docs/version.md
 [guide-errors]: docs/errors.md

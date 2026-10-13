@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: a required positional argument cannot follow an optional positional argument, flattened fields included
+  --> tests/ui/flatten_positional_order.rs:13:5
+   |
+13 |     input: &'a str,
+   |     ^^^^^ evaluation of `_` failed here

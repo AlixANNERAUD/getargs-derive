@@ -1,0 +1,35 @@
+error[E0080]: evaluation panicked: short option `-v` of flattened field `logging` is already used by field `verbose`
+  --> tests/ui/flatten_duplicate_names.rs:26:15
+   |
+26 |     #[command(flatten)]
+   |               ^^^^^^^ evaluation of `_` failed here
+
+error[E0080]: evaluation panicked: long option `--verbose` of flattened field `logging` is already used by field `verbose`
+  --> tests/ui/flatten_duplicate_names.rs:26:15
+   |
+26 |     #[command(flatten)]
+   |               ^^^^^^^ evaluation of `_` failed here
+
+error[E0080]: evaluation panicked: short option `-h` of flattened field `help` is already used by the generated help flag
+  --> tests/ui/flatten_duplicate_names.rs:28:15
+   |
+28 |     #[command(flatten)]
+   |               ^^^^^^^ evaluation of `_` failed here
+
+error[E0080]: evaluation panicked: long option `--help` of flattened field `help` is already used by the generated help flag
+  --> tests/ui/flatten_duplicate_names.rs:28:15
+   |
+28 |     #[command(flatten)]
+   |               ^^^^^^^ evaluation of `_` failed here
+
+error[E0080]: evaluation panicked: long option `--verbose` of flattened field `output` is already used by field `verbose`
+  --> tests/ui/flatten_duplicate_names.rs:30:15
+   |
+30 |     #[command(flatten)]
+   |               ^^^^^^^ evaluation of `_` failed here
+
+error[E0080]: evaluation panicked: flattened fields `logging` and `output` use the same long option
+  --> tests/ui/flatten_duplicate_names.rs:30:15
+   |
+30 |     #[command(flatten)]
+   |               ^^^^^^^ evaluation of `_` failed here

@@ -8,13 +8,42 @@ mod types;
 mod validate;
 
 pub(crate) use container::{ContainerModel, Version};
-pub(crate) use field::{DefaultValue, FieldKind, FieldModel, FlagAction, ValueParser};
+use field::Member;
+pub(crate) use field::{
+    DefaultValue, FieldKind, FieldModel, FlagAction, FlattenModel, ValueParser,
+};
 pub(crate) use relations::resolve_groups;
 
 use errors::Errors;
-use syn::{Data, DeriveInput, Fields};
+use syn::{Data, DeriveInput, Fields, GenericParam};
 
-pub(crate) fn parse(input: &DeriveInput) -> syn::Result<(ContainerModel, Vec<FieldModel>)> {
+pub(crate) enum Slot<'a> {
+    Arg(&'a FieldModel),
+    Flatten(&'a FlattenModel),
+}
+
+pub(crate) struct Model {
+    pub(crate) container: ContainerModel,
+    pub(crate) fields: Vec<FieldModel>,
+    pub(crate) flattened: Vec<(usize, FlattenModel)>,
+}
+
+impl Model {
+    pub(crate) fn slots(&self) -> Vec<Slot<'_>> {
+        let mut slots = Vec::new();
+        let mut flattened = self.flattened.iter().peekable();
+        for (index, field) in self.fields.iter().enumerate() {
+            while let Some((_, flatten)) = flattened.next_if(|(before, _)| *before == index) {
+                slots.push(Slot::Flatten(flatten));
+            }
+            slots.push(Slot::Arg(field));
+        }
+        slots.extend(flattened.map(|(_, flatten)| Slot::Flatten(flatten)));
+        slots
+    }
+}
+
+pub(crate) fn parse(input: &DeriveInput) -> syn::Result<Model> {
     let fields = match &input.data {
         Data::Struct(data) => match &data.fields {
             Fields::Named(fields) => &fields.named,
@@ -54,11 +83,31 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<(ContainerModel, Vec<Fie
         }
     };
     let mut models = Vec::new();
+    let mut flattened = Vec::new();
+    let mut built = true;
 
     for field in fields {
-        match field::build_field(field) {
-            Ok(model) => models.push(model),
-            Err(error) => errors.push(error),
+        match field::build_member(field) {
+            Ok(Member::Arg(model)) => models.push(*model),
+            Ok(Member::Flatten(model)) => flattened.push((models.len(), *model)),
+            Err(error) => {
+                built = false;
+                errors.push(error);
+            }
+        }
+    }
+
+    let generic = input
+        .generics
+        .params
+        .iter()
+        .any(|parameter| !matches!(parameter, GenericParam::Lifetime(_)));
+    if generic {
+        for (_, flatten) in &flattened {
+            errors.push(syn::Error::new(
+                flatten.span,
+                "`#[command(flatten)]` is not supported in structs with type or const parameters",
+            ));
         }
     }
 
@@ -76,11 +125,15 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<(ContainerModel, Vec<Fie
     let groups = container
         .as_ref()
         .map_or(&[][..], |container| container.groups.as_slice());
-    if models.len() == fields.len() {
+    if built {
         relations::validate_relations(groups, &models, &mut errors);
     }
     match container {
-        Some(container) => errors.finish((container, models)),
+        Some(container) => errors.finish(Model {
+            container,
+            fields: models,
+            flattened,
+        }),
         None => Err(errors.0.expect("container errors are recorded")),
     }
 }
