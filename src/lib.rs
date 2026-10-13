@@ -6,9 +6,13 @@
 #[doc(hidden)]
 extern crate self as getargs_derive;
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 #[cfg(feature = "std")]
 extern crate std;
 
+mod collection;
 mod command;
 #[cfg(feature = "std")]
 pub mod completions;
@@ -23,9 +27,16 @@ mod value_enum;
 #[path = "private.rs"]
 pub mod __private;
 
+pub use collection::Values;
 pub use command::{ArgInfo, ArgKind, Command, CommandInfo};
 pub use error::*;
 pub use value_enum::{ParseValueEnumError, ValueEnum};
+
+#[doc(hidden)]
+pub use collection::{
+    Collection as __Collection, finish_values as __finish_values, push_values as __push_values,
+    values_len as __values_len,
+};
 
 #[doc(hidden)]
 pub use env::{__EnvSupport, __env};

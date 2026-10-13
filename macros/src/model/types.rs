@@ -63,3 +63,25 @@ pub(super) fn is_count_type(ty: &Type) -> bool {
         _ => false,
     }
 }
+
+const COLLECTION_TYPES: &[&str] = &["Values", "Vec"];
+
+pub(super) fn collection_element(ty: &Type) -> Option<&Type> {
+    let Type::Path(path) = ty else {
+        return None;
+    };
+    if path.qself.is_some() {
+        return None;
+    }
+    let segment = path.path.segments.last()?;
+    if !COLLECTION_TYPES.iter().any(|name| segment.ident == name) {
+        return None;
+    }
+    let PathArguments::AngleBracketed(arguments) = &segment.arguments else {
+        return None;
+    };
+    match arguments.args.first() {
+        Some(GenericArgument::Type(element)) => Some(element),
+        _ => None,
+    }
+}

@@ -63,7 +63,7 @@ fn arg_info(field: &FieldModel) -> TokenStream {
     if !matches!(field.kind, FieldKind::Flag(_)) && !field.is_optional() {
         calls.push(quote! { .required(true) });
     }
-    if matches!(field.kind, FieldKind::Flag(FlagAction::Count)) {
+    if matches!(field.kind, FieldKind::Flag(FlagAction::Count)) || field.collection.is_some() {
         calls.push(quote! { .multiple(true) });
     }
     if field.parsing.last {

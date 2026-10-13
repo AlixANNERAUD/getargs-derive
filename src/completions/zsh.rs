@@ -88,7 +88,11 @@ pub(super) fn render(command: &CommandInfo) -> String {
         option_lines(arg, &mut output);
     }
     for arg in positionals(command) {
-        let optional = if arg.required { ":" } else { "::" };
+        let optional = match (arg.multiple, arg.required) {
+            (true, _) => "*::",
+            (false, true) => ":",
+            (false, false) => "::",
+        };
         let description = match summary(arg.help) {
             "" => String::new(),
             text => std::format!(" -- {}", help(text)),
@@ -98,6 +102,9 @@ pub(super) fn render(command: &CommandInfo) -> String {
             escape(arg.id, &[]),
             action(arg)
         ));
+        if arg.multiple {
+            break;
+        }
     }
     output.push_str("&& ret=0\n");
     output.push_str("}\n\n");

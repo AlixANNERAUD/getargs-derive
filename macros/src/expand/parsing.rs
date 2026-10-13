@@ -2,7 +2,7 @@ use crate::model::FieldModel;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-fn allows_negative_numbers(field: &FieldModel) -> TokenStream {
+pub(super) fn allows_negative_numbers(field: &FieldModel) -> TokenStream {
     if field.parsing.allow_negative_numbers {
         quote! { true }
     } else {

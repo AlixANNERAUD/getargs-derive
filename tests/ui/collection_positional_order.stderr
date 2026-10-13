@@ -1,0 +1,5 @@
+error: positional argument `output` cannot follow `files`, which collects all remaining positional arguments; move it before `files` or make it `last = true`
+ --> tests/ui/collection_positional_order.rs:6:5
+  |
+6 |     output: Option<&'a str>,
+  |     ^^^^^^

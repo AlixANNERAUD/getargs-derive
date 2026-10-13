@@ -124,6 +124,32 @@ pub enum Error<'a> {
         range: &'static str,
     },
 
+    /// More values were given to a repeated argument than its collection can hold, or than its
+    /// `num_args` range accepts, e.g. a third `-I` for a `Values<&str, 2>` field.
+    ///
+    /// This is also returned when an environment variable or a default splits into too many
+    /// values.
+    TooManyValues {
+        /// The argument name, e.g. `"--include <INCLUDE>"` or `"<FILES>..."`.
+        name: &'static str,
+        /// The first value that did not fit.
+        value: &'a str,
+        /// The maximum number of values.
+        max: usize,
+    },
+
+    /// A positional argument collecting several values received fewer than the minimum of its
+    /// `num_args` range, but at least one. [`Error::MissingArgument`] is returned when it received
+    /// none.
+    TooFewValues {
+        /// The argument name, e.g. `"<FILES>..."`.
+        name: &'static str,
+        /// The minimum number of values.
+        min: usize,
+        /// The number of values given.
+        actual: usize,
+    },
+
     /// Help was requested with `-h` or `--help`.
     ///
     /// This is not a parse failure: the string is the generated help text, the struct's `HELP`
@@ -234,6 +260,19 @@ impl core::fmt::Display for Error<'_> {
                 write!(
                     f,
                     "invalid value '{value}' for '{name}': {value} is not in {range}"
+                )
+            }
+            Error::TooManyValues { name, value, .. } => {
+                write!(
+                    f,
+                    "unexpected value '{value}' for '{name}' found; no more were expected"
+                )
+            }
+            Error::TooFewValues { name, min, actual } => {
+                let verb = if *actual == 1 { "was" } else { "were" };
+                write!(
+                    f,
+                    "{min} values required by '{name}'; only {actual} {verb} provided"
                 )
             }
             Error::Help(help) => f.write_str(help),

@@ -55,6 +55,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 - [Default Values][guide-defaults]: `default_value` and `default_value_t`.
 - [Environment Variables][guide-env]: `env` fallbacks, `parse_with_env` and the `std` feature.
 - [Positional and Optional Arguments][guide-positionals]: positional arguments and `Option<T>` fields.
+- [Repeated Values][guide-collections]: repeated options, `value_delimiter`, positionals collecting the remaining arguments with `num_args`, and the `Values`, `heapless::Vec` and `Vec` storage options.
 - [Argument Relations][guide-relations]: `conflicts_with`, `requires`, `required_unless_present` and argument groups.
 - [Value Validation][guide-validation]: `value_parser` functions and ranges, and `possible_values`.
 - [Parsing Modes][guide-parsing]: values starting with `-`, negative numbers and `last` positionals, and the limits imposed by `getargs`.
@@ -83,6 +84,7 @@ Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
 [guide-defaults]: docs/defaults.md
 [guide-env]: docs/env.md
 [guide-positionals]: docs/positionals.md
+[guide-collections]: docs/collections.md
 [guide-relations]: docs/relations.md
 [guide-validation]: docs/validation.md
 [guide-parsing]: docs/parsing.md

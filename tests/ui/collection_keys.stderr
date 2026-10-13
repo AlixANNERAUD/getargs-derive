@@ -1,0 +1,41 @@
+error: `value_delimiter` requires a field collecting repeated values, of type `getargs_derive::Values<T, N>`, `heapless::Vec<T, N>` (feature `heapless`) or `Vec<T>` (feature `alloc`)
+ --> tests/ui/collection_keys.rs:5:35
+  |
+5 |     #[arg(long, value_delimiter = ',')]
+  |                                   ^^^
+
+error: `num_args` requires a field collecting repeated values, of type `getargs_derive::Values<T, N>`, `heapless::Vec<T, N>` (feature `heapless`) or `Vec<T>` (feature `alloc`)
+ --> tests/ui/collection_keys.rs:7:11
+  |
+7 |     #[arg(num_args = 1..)]
+  |           ^^^^^^^^
+
+error: `default_values` requires a field collecting repeated values, of type `getargs_derive::Values<T, N>`, `heapless::Vec<T, N>` (feature `heapless`) or `Vec<T>` (feature `alloc`)
+ --> tests/ui/collection_keys.rs:9:17
+  |
+9 |     #[arg(long, default_values = ["a"])]
+  |                 ^^^^^^^^^^^^^^
+
+error: `num_args` is only supported on positional arguments; a repeated option takes one value per occurrence
+  --> tests/ui/collection_keys.rs:11:17
+   |
+11 |     #[arg(long, num_args = 1..)]
+   |                 ^^^^^^^^
+
+error: `default_value_t` is not supported on collections; use `default_value` or `default_values`
+  --> tests/ui/collection_keys.rs:13:35
+   |
+13 |     #[arg(long, default_value_t = Values::new())]
+   |                                   ^^^^^^
+
+error: conflicting default values: `default_value` and `default_values` cannot be used together; use only one of them
+  --> tests/ui/collection_keys.rs:15:38
+   |
+15 |     #[arg(long, default_value = "a", default_values = ["b"])]
+   |                                      ^^^^^^^^^^^^^^
+
+error: default value "c" is not one of the possible values: a, b
+  --> tests/ui/collection_keys.rs:17:86
+   |
+17 |     #[arg(long, possible_values = ["a", "b"], value_delimiter = ',', default_value = "a,c")]
+   |                                                                                      ^^^^^

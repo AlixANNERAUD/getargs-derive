@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use getargs_derive::completions::{Shell, generate, man_page, render_man_page};
-use getargs_derive::{Command, GetArgs, ValueEnum};
+use getargs_derive::{Command, GetArgs, ValueEnum, Values};
 use std::path::PathBuf;
 use std::process;
 
@@ -66,6 +66,27 @@ struct Cli<'a> {
     rest: Option<&'a str>,
 }
 
+/// Compile sources.
+#[derive(GetArgs)]
+#[command(name = "cc")]
+struct Compile<'a> {
+    /// Header directories.
+    #[arg(short = 'I', long)]
+    include: Values<&'a str, 4>,
+    /// Optimization level.
+    #[arg(short = 'O', long, possible_values = ["0", "1", "2", "3"])]
+    opt: Values<&'a str, 2>,
+    /// Target language.
+    #[arg(possible_values = ["c", "c++"])]
+    language: &'a str,
+    /// Source files.
+    #[arg(num_args = 1.., possible_values = ["main.c", "util.c"])]
+    sources: Values<&'a str, 8>,
+    /// Linker arguments.
+    #[arg(last = true)]
+    linker: Values<&'a str, 4>,
+}
+
 #[derive(GetArgs)]
 #[command(name = "bare", disable_help_flag)]
 struct Bare<'a> {
@@ -113,6 +134,9 @@ fn bash() {
     let script = completion::<Cli>(Shell::Bash);
     snapshot("copy.bash", &script);
     syntax_check("bash", "-n", &script);
+    let collections = completion::<Compile>(Shell::Bash);
+    snapshot("cc.bash", &collections);
+    syntax_check("bash", "-n", &collections);
     let bare = completion::<Bare>(Shell::Bash);
     snapshot("bare.bash", &bare);
     syntax_check("bash", "-n", &bare);
@@ -123,6 +147,9 @@ fn zsh() {
     let script = completion::<Cli>(Shell::Zsh);
     snapshot("copy.zsh", &script);
     syntax_check("zsh", "-n", &script);
+    let collections = completion::<Compile>(Shell::Zsh);
+    snapshot("cc.zsh", &collections);
+    syntax_check("zsh", "-n", &collections);
     let bare = completion::<Bare>(Shell::Zsh);
     snapshot("bare.zsh", &bare);
     syntax_check("zsh", "-n", &bare);
@@ -133,6 +160,9 @@ fn fish() {
     let script = completion::<Cli>(Shell::Fish);
     snapshot("copy.fish", &script);
     syntax_check("fish", "--no-execute", &script);
+    let collections = completion::<Compile>(Shell::Fish);
+    snapshot("cc.fish", &collections);
+    syntax_check("fish", "--no-execute", &collections);
     snapshot("bare.fish", &completion::<Bare>(Shell::Fish));
 }
 
@@ -143,6 +173,7 @@ fn man() {
     let page = String::from_utf8(output).unwrap();
     assert_eq!(page, render_man_page(&Cli::COMMAND));
     snapshot("copy.1", &page);
+    snapshot("cc.1", &render_man_page(&Compile::COMMAND));
     snapshot("bare.1", &render_man_page(&Bare::COMMAND));
 }
 

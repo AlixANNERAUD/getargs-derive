@@ -1,0 +1,35 @@
+error: `value_delimiter` expects a character literal, e.g. `value_delimiter = ','`
+ --> tests/ui/collection_syntax.rs:5:35
+  |
+5 |     #[arg(long, value_delimiter = ",")]
+  |                                   ^^^
+
+error: `default_values` cannot be empty; a collection is already empty when absent
+ --> tests/ui/collection_syntax.rs:7:34
+  |
+7 |     #[arg(long, default_values = [])]
+  |                                  ^^
+
+error: `default_values` expects an array of string literals, e.g. `default_values = ["a", "b"]`
+ --> tests/ui/collection_syntax.rs:9:34
+  |
+9 |     #[arg(long, default_values = "a")]
+  |                                  ^^^
+
+error: `num_args` must accept at least one value
+  --> tests/ui/collection_syntax.rs:11:22
+   |
+11 |     #[arg(num_args = 0)]
+   |                      ^
+
+error: `num_args` range is empty
+  --> tests/ui/collection_syntax.rs:17:22
+   |
+17 |     #[arg(num_args = 3..2)]
+   |                      ^^^^
+
+error: `num_args` bounds must be integer literals, e.g. `num_args = 1..`
+  --> tests/ui/collection_syntax.rs:23:25
+   |
+23 |     #[arg(num_args = 1..N)]
+   |                         ^

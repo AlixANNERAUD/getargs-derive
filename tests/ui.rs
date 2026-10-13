@@ -4,4 +4,6 @@ fn ui() {
     cases.compile_fail("tests/ui/*.rs");
     #[cfg(not(feature = "std"))]
     cases.compile_fail("tests/ui/no_std/*.rs");
+    #[cfg(not(feature = "alloc"))]
+    cases.compile_fail("tests/ui/no_alloc/*.rs");
 }

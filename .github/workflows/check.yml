@@ -30,9 +30,23 @@ jobs:
 
       - name: Documentation
         run: cargo doc --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+      - name: Clippy without Features
+        run: cargo clippy --all-targets --no-default-features -- -D warnings
 
       - name: Test without Features
         run: cargo test --workspace --no-default-features
+
+      - name: Test with heapless
+        run: cargo test --workspace --no-default-features --features heapless
+
+      - name: Test with alloc
+        run: cargo test --workspace --no-default-features --features alloc
+
+      - name: Test with std
+        run: cargo test --workspace --no-default-features --features std
 
       - name: Test and Coverage
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info

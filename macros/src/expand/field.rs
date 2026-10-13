@@ -19,7 +19,7 @@ pub(super) struct FieldTokens {
     pub(super) field_builds: Vec<TokenStream>,
 }
 
-fn option_pattern(field: &FieldModel) -> TokenStream {
+pub(super) fn option_pattern(field: &FieldModel) -> TokenStream {
     let shorts = field
         .short
         .into_iter()
@@ -55,7 +55,7 @@ pub(super) fn args_trait(ty: &Type) -> TokenStream {
     quote! { <#ty as getargs_derive::__private::Args<'__getargs>> }
 }
 
-fn all(conditions: &[TokenStream]) -> TokenStream {
+pub(super) fn all(conditions: &[TokenStream]) -> TokenStream {
     if conditions.is_empty() {
         quote! { true }
     } else {
@@ -100,6 +100,10 @@ impl FieldTokens {
     }
 
     fn push_arg(&mut self, field: &FieldModel) {
+        if let Some(collection) = &field.collection {
+            self.push_collection(field, collection);
+            return;
+        }
         let index = Index::from(self.state_types.len());
         let slot = quote! { __state.#index };
         let field_ident = &field.ident;

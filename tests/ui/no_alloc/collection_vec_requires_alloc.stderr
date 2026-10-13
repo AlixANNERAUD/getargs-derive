@@ -1,0 +1,35 @@
+error[E0277]: `Vec<&'a str>` cannot collect repeated argument values
+ --> tests/ui/no_alloc/collection_vec_requires_alloc.rs:3:10
+  |
+3 | #[derive(GetArgs)]
+  |          ^^^^^^^ unsupported collection type
+...
+6 |     include: Vec<&'a str>,
+  |              --- required by a bound introduced by this call
+  |
+  = help: the trait `getargs_derive::__Collection` is not implemented for `Vec<&'a str>`
+  = note: use `getargs_derive::Values<T, N>`, `heapless::Vec<T, N>` with the `heapless` feature of `getargs-derive`, or `Vec<T>` with its `alloc` feature
+note: required by a bound in `getargs_derive::push_values`
+ --> src/collection.rs
+  |
+  | pub fn push_values<'a, C: Collection>(
+  |                           ^^^^^^^^^^ required by this bound in `push_values`
+  = note: this error originates in the derive macro `GetArgs` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `Vec<&str>` cannot collect repeated argument values
+ --> tests/ui/no_alloc/collection_vec_requires_alloc.rs:3:10
+  |
+3 | #[derive(GetArgs)]
+  |          ^^^^^^^ unsupported collection type
+...
+6 |     include: Vec<&'a str>,
+  |              --- required by a bound introduced by this call
+  |
+  = help: the trait `getargs_derive::__Collection` is not implemented for `Vec<&str>`
+  = note: use `getargs_derive::Values<T, N>`, `heapless::Vec<T, N>` with the `heapless` feature of `getargs-derive`, or `Vec<T>` with its `alloc` feature
+note: required by a bound in `getargs_derive::finish_values`
+ --> src/collection.rs
+  |
+  | pub fn finish_values<'a, C: Collection>(
+  |                             ^^^^^^^^^^ required by this bound in `finish_values`
+  = note: this error originates in the derive macro `GetArgs` (in Nightly builds, run with -Z macro-backtrace for more info)

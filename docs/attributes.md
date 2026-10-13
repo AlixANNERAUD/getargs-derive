@@ -10,6 +10,7 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | `#[arg(long = "name")]`           | Named option with an explicit long name (`--name`).                                                     |
 | `#[arg(default_value = "text")]`  | Default given as a string literal. Used as-is for `&str` fields, otherwise parsed with `FromStr`. See [Default Values][guide-defaults]. |
 | `#[arg(default_value_t = expr)]`  | Default given as a typed Rust expression of the field's type. See [Default Values][guide-defaults].     |
+| `#[arg(default_values = ["a", "b"])]` | Several default values for a collection field. See [Repeated Values][guide-collections].             |
 | `#[arg(env = "NAME")]`          | Falls back to the environment variable `NAME` when absent from the command line. A bare `env` uses the upper-cased field name. See [Environment Variables][guide-env]. |
 | `#[arg(help = "text")]`           | Description shown in the generated help. Overrides the field's doc comment. See [Generated Help][guide-help]. |
 | `#[arg(value_name = "NAME")]`     | Placeholder shown in the generated help (`<NAME>`). Defaults to the upper-cased field name. Not allowed on flags. |
@@ -24,6 +25,8 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | `#[arg(allow_hyphen_values = true)]` | Option accepting a separate value starting with `-`, e.g. `--pattern -v`. See [Parsing Modes][guide-parsing]. |
 | `#[arg(allow_negative_numbers = true)]` | Option or positional accepting negative numbers such as `-5`. See [Parsing Modes][guide-parsing]. |
 | `#[arg(last = true)]`             | Final positional only filled by an argument given after `--`. See [Parsing Modes][guide-parsing].      |
+| `#[arg(value_delimiter = ',')]`   | Splits every value of a collection field at the character. See [Repeated Values][guide-collections].    |
+| `#[arg(num_args = 1..)]`          | Number of values a positional collection accepts. See [Repeated Values][guide-collections].             |
 | `#[arg(action = Count)]`          | Flag counting its occurrences on an integer field. See [Flag Actions][guide-actions].                   |
 | `#[arg(action = SetFalse)]`       | Flag on a `bool` field that defaults to `true` and is set to `false` by its presence.                   |
 | `#[arg(action = SetTrue)]`        | Explicit form of the default `bool` flag behaviour.                                                     |
@@ -52,6 +55,9 @@ A field marked `#[command(flatten)]` instead takes its arguments from another st
 | Any `FromStr` type        | ✓          | ✓            | Parsed via `.parse()`. Required unless a default is given.                  |
 | Any type with `value_parser = function` | ✓ | ✓          | Converted by the function. See [Value Validation][guide-validation].        |
 | `Option<T>`               | ✓          | ✓            | Optional, `None` when absent. `T` is any type above except `bool`.          |
+| `Values<T, N>`            | ✓          | ✓            | Repeated values, at most `N`, without allocation. See [Repeated Values][guide-collections]. |
+| `heapless::Vec<T, N>`     | ✓          | ✓            | Same, with the `heapless` feature.                                          |
+| `Vec<T>`                  | ✓          | ✓            | Repeated values without limit, with the `alloc` feature.                    |
 
 ## Container Attributes
 
@@ -121,6 +127,7 @@ The macro reports a compile error, pointing at the offending attribute or field,
 - enums, unions, tuple structs and unit structs.
 
 [guide-actions]: actions.md
+[guide-collections]: collections.md
 [guide-defaults]: defaults.md
 [guide-env]: env.md
 [guide-flatten]: flatten.md

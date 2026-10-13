@@ -85,7 +85,8 @@ As in Clap:
 - hidden aliases (`alias`, `short_alias`) are left out, while visible aliases are completed and listed in the man page;
 - the values of `possible_values` and of `value_enum` arguments are offered as completions, for options and positional arguments;
 - other values fall back to the shell's default completion, usually file names;
-- `Count` flags can be completed again after being given once.
+- `Count` flags and [repeated options][guide-collections] can be completed again after being given once;
+- a positional collection keeps completing its values for every remaining positional argument, and is shown as `<NAME>...` or `[NAME]...` in the man page.
 
 The man page has the `NAME`, `SYNOPSIS`, `DESCRIPTION`, `ARGUMENTS`, `OPTIONS` and `VERSION` sections. Arguments use their long help,
 and list their environment variable and possible values. Default values, help headings and `before_help`/`after_help` are not rendered.
@@ -93,3 +94,5 @@ and list their environment variable and possible values. Default values, help he
 ## Compile-Time Diagnostics
 
 The metadata and the generators add no compile-time diagnostics: every `GetArgs` struct can be described and rendered.
+
+[guide-collections]: collections.md
