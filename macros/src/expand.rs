@@ -1,6 +1,7 @@
 mod env;
 mod field;
 mod help;
+mod parsing;
 mod relations;
 mod validation;
 mod version;
@@ -66,6 +67,7 @@ pub(crate) fn expand(
     let help_items = help::help_items(container, fields);
     let help_handler = help::help_handler(container);
     let (version_items, version_handler) = version::version_tokens(container);
+    let negative_numbers = parsing::negative_numbers(fields);
 
     let body = quote! {
         #(#initializers)*
@@ -80,6 +82,7 @@ pub(crate) fn expand(
             }
             _ => getargs_derive::Error::InvalidArguments,
         })? {
+            #negative_numbers
             match argument {
                 #help_handler
                 #version_handler
@@ -121,6 +124,18 @@ pub(crate) fn expand(
                 I: Iterator<Item = &'__getargs str>,
                 #('__getargs: #lifetime_params,)*
             {
+                Self::__parse(options, core::option::Option::None)
+            }
+
+            #[doc(hidden)]
+            pub fn __parse<'__getargs, I>(
+                options: &mut getargs::Options<&'__getargs str, I>,
+                __raw: core::option::Option<&core::cell::Cell<core::option::Option<&'__getargs str>>>,
+            ) -> core::result::Result<Self, getargs_derive::Error<'__getargs>>
+            where
+                I: Iterator<Item = &'__getargs str>,
+                #('__getargs: #lifetime_params,)*
+            {
                 #body
             }
 
@@ -139,8 +154,9 @@ pub(crate) fn expand(
                 I: Iterator<Item = &'__getargs str>,
                 #('__getargs: #lifetime_params,)*
             {
-                let mut options = getargs::Options::new(iter);
-                Self::parse(&mut options)
+                let raw = core::cell::Cell::new(core::option::Option::None);
+                let mut options = getargs::Options::new(getargs_derive::__RawArgs::new(iter, &raw));
+                Self::__parse(&mut options, core::option::Option::Some(&raw))
             }
         }
     };

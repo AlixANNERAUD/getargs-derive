@@ -5,6 +5,7 @@ mod display;
 mod env;
 mod help;
 mod names;
+mod parsing;
 mod relations;
 mod validation;
 mod value_enum;
@@ -15,6 +16,8 @@ use super::errors::Errors;
 use super::types::{is_bool_type, is_count_type, is_str_reference_type, option_inner_type};
 pub(crate) use action::FlagAction;
 pub(crate) use aliases::Alias;
+pub(crate) use parsing::Parsing;
+pub(super) use parsing::{apply_container, parse_bool, validate_last};
 use proc_macro2::Span;
 pub(crate) use relations::Relations;
 use syn::{Expr, Field, Ident, LitStr, Meta, Type, ext::IdentExt, spanned::Spanned};
@@ -25,6 +28,8 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("action", action::action),
     Key::new("alias", aliases::alias),
     Key::new("aliases", aliases::aliases),
+    Key::new("allow_hyphen_values", parsing::allow_hyphen_values),
+    Key::new("allow_negative_numbers", parsing::allow_negative_numbers),
     Key::new("conflicts_with", relations::conflicts_with),
     Key::new("default_value", defaults::default_value),
     Key::new("default_value_t", defaults::default_value_t),
@@ -34,6 +39,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("help", help::help),
     Key::new("help_heading", display::help_heading),
     Key::new("hide", display::hide),
+    Key::new("last", parsing::last),
     Key::new("long", names::long),
     Key::new("long_help", display::long_help),
     Key::new("possible_values", validation::possible_values),
@@ -98,6 +104,7 @@ pub(crate) struct FieldModel {
     pub(crate) help_heading: Option<String>,
     pub(crate) display_order: Option<usize>,
     pub(crate) long_help: Option<String>,
+    pub(crate) parsing: Parsing,
     pub(super) short_span: Span,
     pub(super) long_span: Span,
 }
@@ -154,6 +161,7 @@ struct RawField {
     help_heading: Option<String>,
     display_order: Option<(usize, Span)>,
     long_help: Option<String>,
+    parsing: parsing::RawParsing,
 }
 
 fn to_kebab_case(name: &str) -> String {
@@ -372,6 +380,7 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
     } else {
         FieldKind::Option
     };
+    let parsing = parsing::build_parsing(raw.parsing, &kind, &mut errors);
 
     let env = raw.env.map(|(value, span)| {
         let env = value.unwrap_or_else(|| name.to_uppercase());
@@ -429,6 +438,7 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         help_heading: raw.help_heading,
         display_order: raw.display_order.map(|(order, _)| order),
         long_help: raw.long_help.or_else(|| long_doc(&field.attrs)),
+        parsing,
         short_span,
         long_span,
     })

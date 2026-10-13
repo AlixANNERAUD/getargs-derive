@@ -1,4 +1,5 @@
 use super::env::env_lookup;
+use super::parsing;
 use super::validation::convert;
 use crate::model::{DefaultValue, FieldKind, FieldModel, FlagAction};
 use proc_macro2::TokenStream;
@@ -11,6 +12,7 @@ pub(super) struct FieldTokens {
     pub(super) positional_match_arms: Vec<TokenStream>,
     pub(super) finalizers: Vec<TokenStream>,
     pub(super) field_builds: Vec<TokenStream>,
+    last_positional: Option<usize>,
 }
 
 fn option_pattern(field: &FieldModel) -> TokenStream {
@@ -79,17 +81,22 @@ impl FieldTokens {
                 let pattern = option_pattern(field);
                 let error_name = field.error_name();
                 let parsed = convert(field, quote! { value }, &error_name);
+                let value = parsing::option_value(
+                    field,
+                    quote! { getargs_derive::Error::MissingOptionValue(#error_name) },
+                );
                 self.option_match_arms.push(quote! {
                     #pattern => {
-                        let value = options
-                            .value()
-                            .map_err(|_| getargs_derive::Error::MissingOptionValue(#error_name))?;
+                        let value = #value;
                         #value_ident = core::option::Option::Some(#parsed);
                     }
                 });
             }
             FieldKind::Positional => {
                 let index = self.positional_match_arms.len();
+                if field.parsing.last {
+                    self.last_positional = Some(index);
+                }
                 let parsed = convert(field, quote! { value }, &field.error_name());
                 self.positional_match_arms.push(quote! {
                     #index => {
@@ -117,6 +124,7 @@ impl FieldTokens {
 
     pub(super) fn positional_handler(&self) -> TokenStream {
         let positional_match_arms = &self.positional_match_arms;
+        let last_positional = parsing::last_positional(self.last_positional);
         if positional_match_arms.is_empty() {
             quote! {
                 getargs::Arg::Positional(value) => {
@@ -126,6 +134,7 @@ impl FieldTokens {
         } else {
             quote! {
                 getargs::Arg::Positional(value) => {
+                    #last_positional
                     match __positional_index {
                         #(#positional_match_arms)*
                         _ => return Err(getargs_derive::Error::UnexpectedArgument(value)),

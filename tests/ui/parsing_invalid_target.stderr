@@ -1,0 +1,23 @@
+error: `allow_hyphen_values` can only be used on options taking a value; flags do not take a value
+ --> tests/ui/parsing_invalid_target.rs:5:46
+  |
+5 |     #[arg(short, long, allow_hyphen_values = true)]
+  |                                              ^^^^
+
+error: `allow_negative_numbers` can only be used on options taking a value and positional arguments; flags do not take a value
+ --> tests/ui/parsing_invalid_target.rs:7:49
+  |
+7 |     #[arg(short, long, allow_negative_numbers = true)]
+  |                                                 ^^^^
+
+error: `allow_hyphen_values` is not supported on positional arguments, because `getargs` splits `-x` into options before the field sees it; use `allow_negative_numbers` for numbers, or `last = true` to accept any value after `--`
+ --> tests/ui/parsing_invalid_target.rs:9:33
+  |
+9 |     #[arg(allow_hyphen_values = true)]
+  |                                 ^^^^
+
+error: `last` can only be used on positional arguments; remove `short` and `long`
+  --> tests/ui/parsing_invalid_target.rs:11:25
+   |
+11 |     #[arg(short, last = true)]
+   |                         ^^^^

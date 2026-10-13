@@ -1,6 +1,7 @@
 mod group;
 mod help;
 mod help_text;
+mod parsing;
 mod text;
 mod version;
 
@@ -13,6 +14,7 @@ use syn::{DeriveInput, Meta};
 const COMMAND_KEYS: &[Key<RawContainer>] = &[
     Key::new("about", text::about),
     Key::new("after_help", help_text::after_help),
+    Key::new("allow_negative_numbers", parsing::allow_negative_numbers),
     Key::new("before_help", help_text::before_help),
     Key::new("disable_help_flag", help::disable_help_flag),
     Key::new("group", group::group),
@@ -32,6 +34,7 @@ pub(crate) struct ContainerModel {
     pub(crate) before_help: Option<String>,
     pub(crate) after_help: Option<String>,
     pub(crate) max_term_width: Option<usize>,
+    pub(crate) allow_negative_numbers: bool,
 }
 
 pub(crate) enum Version {
@@ -50,6 +53,7 @@ struct RawContainer {
     before_help: Option<String>,
     after_help: Option<String>,
     max_term_width: Option<usize>,
+    allow_negative_numbers: Option<bool>,
 }
 
 pub(super) fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel> {
@@ -84,5 +88,6 @@ pub(super) fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel
         before_help: raw.before_help,
         after_help: raw.after_help,
         max_term_width: raw.max_term_width,
+        allow_negative_numbers: raw.allow_negative_numbers.unwrap_or(false),
     })
 }

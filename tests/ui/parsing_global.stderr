@@ -1,0 +1,5 @@
+error: unknown `arg` attribute `global`; supported attributes are: `action`, `alias`, `aliases`, `allow_hyphen_values`, `allow_negative_numbers`, `conflicts_with`, `default_value`, `default_value_t`, `display_order`, `env`, `group`, `help`, `help_heading`, `hide`, `last`, `long`, `long_help`, `possible_values`, `required_unless_present`, `requires`, `short`, `short_alias`, `short_aliases`, `value_enum`, `value_name`, `value_parser`, `visible_alias`, `visible_aliases`, `visible_short_alias`, `visible_short_aliases`
+ --> tests/ui/parsing_global.rs:5:24
+  |
+5 |     #[arg(short, long, global = true)]
+  |                        ^^^^^^

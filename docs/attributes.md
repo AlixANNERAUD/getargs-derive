@@ -21,6 +21,9 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | `#[arg(hide)]`                    | Omits the argument from the generated help. It is still parsed.                                         |
 | `#[arg(help_heading = "Name")]`   | Lists the argument in a custom `Name:` section of the generated help.                                   |
 | `#[arg(display_order = N)]`       | Position of a named option within its help section.                                                     |
+| `#[arg(allow_hyphen_values = true)]` | Option accepting a separate value starting with `-`, e.g. `--pattern -v`. See [Parsing Modes][guide-parsing]. |
+| `#[arg(allow_negative_numbers = true)]` | Option or positional accepting negative numbers such as `-5`. See [Parsing Modes][guide-parsing]. |
+| `#[arg(last = true)]`             | Final positional only filled by an argument given after `--`. See [Parsing Modes][guide-parsing].      |
 | `#[arg(action = Count)]`          | Flag counting its occurrences on an integer field. See [Flag Actions][guide-actions].                   |
 | `#[arg(action = SetFalse)]`       | Flag on a `bool` field that defaults to `true` and is set to `false` by its presence.                   |
 | `#[arg(action = SetTrue)]`        | Explicit form of the default `bool` flag behaviour.                                                     |
@@ -32,7 +35,7 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 - A field is a **named option** if and only if it has `short` and/or `long`. It is only reachable through the names it declares: a field with `#[arg(short)]` has no long name, and vice versa.
 - A named `bool` field is a **flag**: its presence sets it to `true`, and it defaults to `false`. It never consumes a value.
 - A named field with an `action` is a **flag** behaving as described in [Flag Actions][guide-actions].
-- A named field of any other type is an **option** taking a value (`-j 4`, `-j4`, `--jobs 4` or `--jobs=4`).
+- A named field of any other type is an **option** taking a value (`-j 4`, `-j4`, `--jobs 4` or `--jobs=4`). A separate value starting with `-` is refused unless the option allows it; see [Parsing Modes][guide-parsing].
 - Every other field is a **positional argument**, filled in declaration order. `bool` fields cannot be positional.
 - A field of type `Option<T>` is **optional**: it is `None` when absent, and `Some(value)` otherwise, with the value parsed as for a `T` field. See [Positional and Optional Arguments][guide-positionals].
 
@@ -62,6 +65,7 @@ The struct accepts a `#[command(...)]` attribute supporting this Clap-like subse
 | `#[command(max_term_width = N)]`    | Wraps the help at `N` columns, at compile time.                                                               |
 | `#[command(version)]`               | Enables `-V`/`--version` with the package version (`CARGO_PKG_VERSION`) of the crate deriving `GetArgs`. See [Version Flag][guide-version]. |
 | `#[command(version = "1.2.3")]`     | Enables `-V`/`--version` with an explicit version.                                                            |
+| `#[command(allow_negative_numbers)]` | Every option taking a value and every positional accepts negative numbers. See [Parsing Modes][guide-parsing]. |
 | `#[command(disable_help_flag)]`     | Disables `-h`/`--help` handling: they become ordinary unknown options, and fields may use them. See [Generated Help][guide-help]. |
 
 ## Full Example
@@ -118,6 +122,7 @@ The macro reports a compile error, pointing at the offending attribute or field,
 [guide-defaults]: defaults.md
 [guide-env]: env.md
 [guide-help]: help.md
+[guide-parsing]: parsing.md
 [guide-positionals]: positionals.md
 [guide-validation]: validation.md
 [guide-value-enum]: value_enum.md

@@ -309,7 +309,11 @@ pub(crate) fn help_text(
         match field.kind {
             FieldKind::Positional => {
                 usage.push(' ');
-                usage.push_str(&positional_label(field));
+                match (field.parsing.last, field.is_optional()) {
+                    (false, _) => usage.push_str(&positional_label(field)),
+                    (true, true) => usage.push_str(&format!("[-- <{}>]", field.value_name)),
+                    (true, false) => usage.push_str(&format!("-- <{}>", field.value_name)),
+                }
             }
             FieldKind::Flag(_) | FieldKind::Option => has_options = true,
         }

@@ -34,7 +34,7 @@ pub(super) fn parse_methods(lifetime_params: &[syn::Lifetime], body: TokenStream
             I: Iterator<Item = &'__getargs str> + getargs_derive::__EnvSupport,
             #('__getargs: #lifetime_params,)*
         {
-            Self::parse_with_env(options, getargs_derive::__env)
+            Self::__parse(options, core::option::Option::None, getargs_derive::__env)
         }
 
         /// Parse CLI arguments from an iterator, using `getargs::Options`, reading environment
@@ -42,7 +42,21 @@ pub(super) fn parse_methods(lifetime_params: &[syn::Lifetime], body: TokenStream
         ///
         /// `env` is called with the name of an environment variable and returns its value, or
         /// `None` when it is not set. It is only called for arguments absent from the command line.
-        pub fn parse_with_env<'__getargs, I, E>(options: &mut getargs::Options<&'__getargs str, I>, mut __getargs_env: E) -> core::result::Result<Self, getargs_derive::Error<'__getargs>>
+        pub fn parse_with_env<'__getargs, I, E>(options: &mut getargs::Options<&'__getargs str, I>, env: E) -> core::result::Result<Self, getargs_derive::Error<'__getargs>>
+        where
+            I: Iterator<Item = &'__getargs str>,
+            E: FnMut(&str) -> core::option::Option<&'__getargs str>,
+            #('__getargs: #lifetime_params,)*
+        {
+            Self::__parse(options, core::option::Option::None, env)
+        }
+
+        #[doc(hidden)]
+        pub fn __parse<'__getargs, I, E>(
+            options: &mut getargs::Options<&'__getargs str, I>,
+            __raw: core::option::Option<&core::cell::Cell<core::option::Option<&'__getargs str>>>,
+            mut __getargs_env: E,
+        ) -> core::result::Result<Self, getargs_derive::Error<'__getargs>>
         where
             I: Iterator<Item = &'__getargs str>,
             E: FnMut(&str) -> core::option::Option<&'__getargs str>,
@@ -62,8 +76,9 @@ pub(super) fn parse_methods(lifetime_params: &[syn::Lifetime], body: TokenStream
             I: Iterator<Item = &'__getargs str> + getargs_derive::__EnvSupport,
             #('__getargs: #lifetime_params,)*
         {
-            let mut options = getargs::Options::new(iter);
-            Self::parse(&mut options)
+            let raw = core::cell::Cell::new(core::option::Option::None);
+            let mut options = getargs::Options::new(getargs_derive::__RawArgs::new(iter, &raw));
+            Self::__parse(&mut options, core::option::Option::Some(&raw), getargs_derive::__env)
         }
 
         /// Parse CLI arguments directly from an iterator, reading environment variable fallbacks
@@ -77,8 +92,9 @@ pub(super) fn parse_methods(lifetime_params: &[syn::Lifetime], body: TokenStream
             E: FnMut(&str) -> core::option::Option<&'__getargs str>,
             #('__getargs: #lifetime_params,)*
         {
-            let mut options = getargs::Options::new(iter);
-            Self::parse_with_env(&mut options, env)
+            let raw = core::cell::Cell::new(core::option::Option::None);
+            let mut options = getargs::Options::new(getargs_derive::__RawArgs::new(iter, &raw));
+            Self::__parse(&mut options, core::option::Option::Some(&raw), env)
         }
     }
 }
