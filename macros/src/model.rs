@@ -7,7 +7,7 @@ mod types;
 mod validate;
 
 pub(crate) use container::{ContainerModel, Version};
-pub(crate) use field::{DefaultValue, FieldKind, FieldModel};
+pub(crate) use field::{DefaultValue, FieldKind, FieldModel, FlagAction};
 
 use errors::Errors;
 use syn::{Data, DeriveInput, Fields};

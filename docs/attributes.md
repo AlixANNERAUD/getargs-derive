@@ -12,6 +12,9 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | `#[arg(default_value_t = expr)]`  | Default given as a typed Rust expression of the field's type. See [Default Values][guide-defaults].     |
 | `#[arg(help = "text")]`           | Description shown in the generated help. Overrides the field's doc comment. See [Generated Help][guide-help]. |
 | `#[arg(value_name = "NAME")]`     | Placeholder shown in the generated help (`<NAME>`). Defaults to the upper-cased field name. Not allowed on flags. |
+| `#[arg(action = Count)]`          | Flag counting its occurrences on an integer field. See [Flag Actions][guide-actions].                   |
+| `#[arg(action = SetFalse)]`       | Flag on a `bool` field that defaults to `true` and is set to `false` by its presence.                   |
+| `#[arg(action = SetTrue)]`        | Explicit form of the default `bool` flag behaviour.                                                     |
 
 `short` and `long` can be combined: `#[arg(short, long)]` accepts both `-v` and `--verbose`.
 
@@ -19,6 +22,7 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 
 - A field is a **named option** if and only if it has `short` and/or `long`. It is only reachable through the names it declares: a field with `#[arg(short)]` has no long name, and vice versa.
 - A named `bool` field is a **flag**: its presence sets it to `true`, and it defaults to `false`. It never consumes a value.
+- A named field with an `action` is a **flag** behaving as described in [Flag Actions][guide-actions].
 - A named field of any other type is an **option** taking a value (`-j 4`, `-j4`, `--jobs 4` or `--jobs=4`).
 - Every other field is a **positional argument**, filled in declaration order. `bool` fields cannot be positional.
 - A field of type `Option<T>` is **optional**: it is `None` when absent, and `Some(value)` otherwise, with the value parsed as for a `T` field. See [Positional and Optional Arguments][guide-positionals].
@@ -28,7 +32,8 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | Type                      | Positional | Named option | Notes                                                                       |
 | ------------------------- | ---------- | ------------ | --------------------------------------------------------------------------- |
 | `&str`                    | ✓          | ✓            | Borrows the argument string directly — no allocation.                       |
-| `bool`                    | ✗          | ✓            | Flag, set to `true` by its presence.                                        |
+| `bool`                    | ✗          | ✓            | Flag, set to `true` by its presence (`false` with `action = SetFalse`).     |
+| Integer with `action = Count` | ✗      | ✓            | Flag counting its occurrences.                                              |
 | `NonZeroU*` / `NonZeroI*` | ✓          | ✓            | Parsed via `.parse()`. Required unless a default is given.                  |
 | Any `FromStr` type        | ✓          | ✓            | Parsed via `.parse()`. Required unless a default is given.                  |
 | `Option<T>`               | ✓          | ✓            | Optional, `None` when absent. `T` is `&str` or a `FromStr` type, not `bool`. |
@@ -95,6 +100,7 @@ The macro reports a compile error, pointing at the offending attribute or field,
 - unknown or repeated `#[command(...)]` keys, and `value_name` on a flag;
 - enums, unions, tuple structs and unit structs.
 
+[guide-actions]: actions.md
 [guide-defaults]: defaults.md
 [guide-help]: help.md
 [guide-positionals]: positionals.md

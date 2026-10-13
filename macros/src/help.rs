@@ -1,4 +1,4 @@
-use crate::model::{ContainerModel, DefaultValue, FieldKind, FieldModel};
+use crate::model::{ContainerModel, DefaultValue, FieldKind, FieldModel, FlagAction};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{Expr, ExprLit, Lit, UnOp};
@@ -72,8 +72,10 @@ fn option_label(field: &FieldModel) -> String {
         (None, Some(long)) => format!("    --{long}"),
         (None, None) => unreachable!("named options always have a short or long name"),
     };
-    if let FieldKind::Option = field.kind {
-        label.push_str(&format!(" <{}>", field.value_name));
+    match field.kind {
+        FieldKind::Option => label.push_str(&format!(" <{}>", field.value_name)),
+        FieldKind::Flag(FlagAction::Count) => label.push_str("..."),
+        _ => {}
     }
     label
 }
@@ -127,7 +129,7 @@ pub(crate) fn help_text(container: &ContainerModel, fields: &[FieldModel]) -> To
                     description: description(field),
                 });
             }
-            FieldKind::Flag | FieldKind::Option => options.push(Entry {
+            FieldKind::Flag(_) | FieldKind::Option => options.push(Entry {
                 label: option_label(field),
                 description: description(field),
             }),

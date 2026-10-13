@@ -49,6 +49,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 ## Guide
 
 - [Attribute Reference][guide-attributes]: `#[arg(...)]` and `#[command(...)]` attributes, argument resolution and supported field types.
+- [Flag Actions][guide-actions]: `SetTrue`, `SetFalse` and `Count` flags.
 - [Default Values][guide-defaults]: `default_value` and `default_value_t`.
 - [Positional and Optional Arguments][guide-positionals]: positional arguments and `Option<T>` fields.
 - [Generated Help][guide-help]: the `HELP` constant, `-h`/`--help` and `disable_help_flag`.
@@ -69,6 +70,7 @@ Licensed under the <a href="LICENSE">MIT License</a>.
 Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
 
 [guide-attributes]: docs/attributes.md
+[guide-actions]: docs/actions.md
 [guide-defaults]: docs/defaults.md
 [guide-positionals]: docs/positionals.md
 [guide-help]: docs/help.md

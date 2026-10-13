@@ -1,4 +1,4 @@
-error: unknown `arg` attribute `env`; supported attributes are: `default` (legacy), `default_value`, `default_value_t`, `flag`, `help`, `long`, `positional`, `short`, `value_name`
+error: unknown `arg` attribute `env`; supported attributes are: `action`, `default` (legacy), `default_value`, `default_value_t`, `flag`, `help`, `long`, `positional`, `short`, `value_name`
  --> tests/ui/unknown_key.rs:5:17
   |
 5 |     #[arg(long, env = "VERBOSE")]

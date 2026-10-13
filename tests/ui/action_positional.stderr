@@ -1,0 +1,11 @@
+error: `action = Count` requires a named option; add `short` and/or `long`, e.g. `#[arg(short, long, action = Count)]`
+ --> tests/ui/action_positional.rs:5:20
+  |
+5 |     #[arg(action = Count)]
+  |                    ^^^^^
+
+error: `action = SetFalse` requires a named option; add `short` and/or `long`, e.g. `#[arg(short, long, action = SetFalse)]`
+ --> tests/ui/action_positional.rs:7:20
+  |
+7 |     #[arg(action = SetFalse)]
+  |                    ^^^^^^^^
