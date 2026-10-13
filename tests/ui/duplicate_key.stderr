@@ -1,0 +1,11 @@
+error: duplicate `short` attribute
+ --> tests/ui/duplicate_key.rs:5:18
+  |
+5 |     #[arg(short, short = 'x')]
+  |                  ^^^^^^^^^^^
+
+error: duplicate `long` attribute
+  --> tests/ui/duplicate_key.rs:12:11
+   |
+12 |     #[arg(long = "verbose")]
+   |           ^^^^^^^^^^^^^^^^

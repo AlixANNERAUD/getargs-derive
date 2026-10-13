@@ -1,0 +1,17 @@
+error: `default_value` expects a string literal; use `default_value_t = expr` for a typed value
+ --> tests/ui/invalid_default.rs:5:33
+  |
+5 |     #[arg(long, default_value = 4)]
+  |                                 ^
+
+error: `default_value_t` requires a value, e.g. `default_value_t = 4`
+  --> tests/ui/invalid_default.rs:11:17
+   |
+11 |     #[arg(long, default_value_t)]
+   |                 ^^^^^^^^^^^^^^^
+
+error: `#[default]` requires a value, e.g. `#[arg(default_value_t = 4)]`
+  --> tests/ui/invalid_default.rs:18:5
+   |
+18 |     #[default]
+   |     ^^^^^^^^^^

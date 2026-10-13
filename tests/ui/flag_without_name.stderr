@@ -1,0 +1,11 @@
+error: `flag` requires a named option; add `short` and/or `long`, e.g. `#[arg(short, long)]`
+ --> tests/ui/flag_without_name.rs:5:11
+  |
+5 |     #[arg(flag)]
+  |           ^^^^
+
+error: `flag` does not take a value
+  --> tests/ui/flag_without_name.rs:11:17
+   |
+11 |     #[arg(long, flag = true)]
+   |                 ^^^^

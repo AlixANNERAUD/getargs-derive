@@ -23,7 +23,7 @@ mod tests {
     #[derive(GetArgs)]
     struct BasicPositionalFlag<'a> {
         positional_field: &'a str,
-        #[arg(flag)]
+        #[arg(long)]
         bool_field: bool,
     }
 
@@ -35,35 +35,36 @@ mod tests {
 
     #[derive(GetArgs)]
     struct CustomShort<'a> {
-        #[arg(short = 'n', default = "default")]
+        #[arg(short = 'n', default_value = "default")]
         name: &'a str,
     }
 
     #[derive(GetArgs)]
     struct CustomLong {
-        #[arg(long = "my-flag", flag)]
+        #[arg(long = "my-flag")]
         my_flag: bool,
     }
 
     #[derive(GetArgs)]
     struct WithDefault<'a> {
-        #[arg(default = "fallback")]
+        #[arg(long, default_value = "fallback")]
         name: &'a str,
     }
 
     #[derive(GetArgs)]
     struct WithLegacyDefault {
+        #[arg(long)]
         #[default(42)]
         value: u32,
     }
 
     #[derive(GetArgs)]
     struct WithParseable {
-        #[arg(short = 'j', default = 1)]
+        #[arg(short = 'j', default_value_t = 1)]
         jobs: u32,
     }
 
-    #[derive(GetArgs)]
+    #[derive(Debug, GetArgs)]
     struct WithNonZero {
         #[arg(short = 'p')]
         port: NonZeroU32,
@@ -71,6 +72,7 @@ mod tests {
 
     #[derive(Debug, GetArgs)]
     struct RequiredOption<'a> {
+        #[arg(long)]
         name: &'a str,
     }
 
@@ -92,9 +94,9 @@ mod tests {
 
     #[derive(GetArgs)]
     struct MultipleFlags {
-        #[arg(flag)]
+        #[arg(long)]
         verbose: bool,
-        #[arg(flag)]
+        #[arg(long)]
         debug: bool,
     }
 
@@ -113,10 +115,84 @@ mod tests {
     #[derive(GetArgs)]
     struct Mixed<'a> {
         input: &'a str,
-        #[arg(flag)]
+        #[arg(short, long)]
         verbose: bool,
-        #[arg(short = 'o', default = "out")]
+        #[arg(short, long, default_value = "out")]
         output: &'a str,
+    }
+
+    #[derive(Debug, GetArgs)]
+    struct InferredNames {
+        #[arg(short, long)]
+        verbose: bool,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(short, default_value_t = 1)]
+        jobs: u32,
+    }
+
+    #[derive(Debug, GetArgs)]
+    struct ExplicitNames<'a> {
+        #[arg(short = 'x', long = "extract")]
+        archive: bool,
+        #[arg(short = 'C', long = "directory", default_value = ".")]
+        dir: &'a str,
+    }
+
+    #[derive(Debug, GetArgs)]
+    struct RawIdentifier<'a> {
+        #[arg(long, default_value = "file")]
+        r#type: &'a str,
+    }
+
+    #[derive(Debug, GetArgs)]
+    struct DefaultForms<'a> {
+        #[arg(long, default_value = "8")]
+        parsed: u32,
+        #[arg(long, default_value_t = 3)]
+        typed: u32,
+        #[arg(long, default_value_t = "typed")]
+        typed_str: &'a str,
+        #[arg(long, default_value_t = NonZeroU32::new(5).unwrap())]
+        non_zero: NonZeroU32,
+    }
+
+    #[derive(Debug, GetArgs)]
+    struct InvalidDefaultValue {
+        #[arg(long, default_value = "abc")]
+        jobs: u32,
+    }
+
+    #[derive(Debug, GetArgs)]
+    struct LegacyForms {
+        #[arg(long, default = 5)]
+        arg_default: u32,
+        #[arg(long)]
+        #[default = 7]
+        name_value_default: u32,
+        #[arg(long, flag)]
+        legacy_flag: bool,
+    }
+
+    #[derive(Debug, GetArgs)]
+    struct LegacyPositionalDefault {
+        #[default(9)]
+        count: u32,
+    }
+
+    #[derive(Debug, GetArgs)]
+    struct OptionalPositionals<'a> {
+        input: &'a str,
+        #[arg(default_value = "out.txt")]
+        output: &'a str,
+        #[arg(default_value_t = 2)]
+        level: u8,
+    }
+
+    #[derive(Debug, GetArgs)]
+    struct FlagWithDefault {
+        #[arg(long, default_value_t = true)]
+        color: bool,
     }
 
     // ── happy-path tests ────────────────────────────────────────────
@@ -263,6 +339,178 @@ mod tests {
         assert_eq!(err, Error::ParseError("num"));
     }
 
+    #[test]
+    fn inferred_short_and_long() {
+        let args = ["-v", "--dry-run", "-j", "4"];
+        let params = InferredNames::from_args(args.into_iter()).unwrap();
+        assert!(params.verbose);
+        assert!(params.dry_run);
+        assert_eq!(params.jobs, 4);
+
+        let params = InferredNames::from_args(["--verbose"].into_iter()).unwrap();
+        assert!(params.verbose);
+        assert!(!params.dry_run);
+        assert_eq!(params.jobs, 1);
+    }
+
+    #[test]
+    fn short_only_rejects_long() {
+        let err = InferredNames::from_args(["--jobs", "4"].into_iter()).unwrap_err();
+        assert_eq!(err, Error::UnknownOption);
+    }
+
+    #[test]
+    fn long_only_rejects_short() {
+        let err = InferredNames::from_args(["-d"].into_iter()).unwrap_err();
+        assert_eq!(err, Error::UnknownOption);
+    }
+
+    #[test]
+    fn explicit_short_and_long() {
+        let params = ExplicitNames::from_args(["-x", "-C", "/tmp"].into_iter()).unwrap();
+        assert!(params.archive);
+        assert_eq!(params.dir, "/tmp");
+
+        let args = ["--extract", "--directory=/srv"];
+        let params = ExplicitNames::from_args(args.into_iter()).unwrap();
+        assert!(params.archive);
+        assert_eq!(params.dir, "/srv");
+
+        let params = ExplicitNames::from_args([].into_iter()).unwrap();
+        assert!(!params.archive);
+        assert_eq!(params.dir, ".");
+    }
+
+    #[test]
+    fn explicit_names_replace_field_name() {
+        let err = ExplicitNames::from_args(["--archive"].into_iter()).unwrap_err();
+        assert_eq!(err, Error::UnknownOption);
+    }
+
+    #[test]
+    fn raw_identifier_long_name() {
+        let params = RawIdentifier::from_args(["--type", "dir"].into_iter()).unwrap();
+        assert_eq!(params.r#type, "dir");
+    }
+
+    #[test]
+    fn default_value_and_default_value_t() {
+        let params = DefaultForms::from_args([].into_iter()).unwrap();
+        assert_eq!(params.parsed, 8);
+        assert_eq!(params.typed, 3);
+        assert_eq!(params.typed_str, "typed");
+        assert_eq!(params.non_zero.get(), 5);
+
+        let args = [
+            "--parsed",
+            "1",
+            "--typed",
+            "2",
+            "--typed-str",
+            "given",
+            "--non-zero",
+            "9",
+        ];
+        let params = DefaultForms::from_args(args.into_iter()).unwrap();
+        assert_eq!(params.parsed, 1);
+        assert_eq!(params.typed, 2);
+        assert_eq!(params.typed_str, "given");
+        assert_eq!(params.non_zero.get(), 9);
+    }
+
+    #[test]
+    fn invalid_default_value_reports_parse_error() {
+        let err = InvalidDefaultValue::from_args([].into_iter()).unwrap_err();
+        assert_eq!(err, Error::ParseError("jobs"));
+    }
+
+    #[test]
+    fn invalid_default_value_unused_when_provided() {
+        let params = InvalidDefaultValue::from_args(["--jobs", "2"].into_iter()).unwrap();
+        assert_eq!(params.jobs, 2);
+    }
+
+    #[test]
+    fn legacy_forms() {
+        let params = LegacyForms::from_args([].into_iter()).unwrap();
+        assert_eq!(params.arg_default, 5);
+        assert_eq!(params.name_value_default, 7);
+        assert!(!params.legacy_flag);
+
+        let args = [
+            "--arg-default",
+            "1",
+            "--name-value-default",
+            "2",
+            "--legacy-flag",
+        ];
+        let params = LegacyForms::from_args(args.into_iter()).unwrap();
+        assert_eq!(params.arg_default, 1);
+        assert_eq!(params.name_value_default, 2);
+        assert!(params.legacy_flag);
+    }
+
+    #[test]
+    fn legacy_default_without_name_is_optional_positional() {
+        let params = LegacyPositionalDefault::from_args([].into_iter()).unwrap();
+        assert_eq!(params.count, 9);
+
+        let params = LegacyPositionalDefault::from_args(["3"].into_iter()).unwrap();
+        assert_eq!(params.count, 3);
+
+        let args = ["--count", "3"];
+        let err = LegacyPositionalDefault::from_args(args.into_iter()).unwrap_err();
+        assert_eq!(err, Error::UnknownOption);
+    }
+
+    #[test]
+    fn optional_positionals() {
+        let params = OptionalPositionals::from_args(["in.txt"].into_iter()).unwrap();
+        assert_eq!(params.input, "in.txt");
+        assert_eq!(params.output, "out.txt");
+        assert_eq!(params.level, 2);
+
+        let args = ["in.txt", "res.txt"];
+        let params = OptionalPositionals::from_args(args.into_iter()).unwrap();
+        assert_eq!(params.output, "res.txt");
+        assert_eq!(params.level, 2);
+
+        let args = ["in.txt", "res.txt", "7"];
+        let params = OptionalPositionals::from_args(args.into_iter()).unwrap();
+        assert_eq!(params.level, 7);
+    }
+
+    #[test]
+    fn optional_positionals_still_require_leading_positional() {
+        let err = OptionalPositionals::from_args([].into_iter()).unwrap_err();
+        assert_eq!(err, Error::MissingPositionalArgument("input"));
+    }
+
+    #[test]
+    fn optional_positionals_reject_extra_arguments() {
+        let args = ["a", "b", "1", "extra"];
+        let err = OptionalPositionals::from_args(args.into_iter()).unwrap_err();
+        assert_eq!(err, Error::InvalidNumberOfArguments);
+    }
+
+    #[test]
+    fn flag_with_default() {
+        let params = FlagWithDefault::from_args([].into_iter()).unwrap();
+        assert!(params.color);
+    }
+
+    #[test]
+    fn nonzero_without_default_is_required() {
+        let err = WithNonZero::from_args([].into_iter()).unwrap_err();
+        assert_eq!(err, Error::MissingPositionalArgument("port"));
+    }
+
+    #[test]
+    fn missing_option_value() {
+        let err = ExplicitNames::from_args(["--directory"].into_iter()).unwrap_err();
+        assert_eq!(err, Error::MissingOptionValue("directory"));
+    }
+
     // ── error-path tests ────────────────────────────────────────────
 
     #[test]
@@ -325,7 +573,7 @@ mod tests {
     fn too_many_positionals_when_no_positionals_defined() {
         #[derive(Debug, GetArgs)]
         struct FlagsOnly {
-            #[arg(flag)]
+            #[arg(long)]
             verbose: bool,
         }
 

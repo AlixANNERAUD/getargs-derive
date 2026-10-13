@@ -1,0 +1,29 @@
+error: `long` cannot be empty
+ --> tests/ui/invalid_long.rs:5:18
+  |
+5 |     #[arg(long = "")]
+  |                  ^^
+
+error: `long` must not start with `-`; write `long = "verbose"`
+ --> tests/ui/invalid_long.rs:7:18
+  |
+7 |     #[arg(long = "--verbose")]
+  |                  ^^^^^^^^^^^
+
+error: `long` cannot contain whitespace or `=`
+ --> tests/ui/invalid_long.rs:9:18
+  |
+9 |     #[arg(long = "dry run")]
+  |                  ^^^^^^^^^
+
+error: `long` cannot contain whitespace or `=`
+  --> tests/ui/invalid_long.rs:11:18
+   |
+11 |     #[arg(long = "key=value")]
+   |                  ^^^^^^^^^^^
+
+error: `long` expects a string literal, e.g. `long = "output"`
+  --> tests/ui/invalid_long.rs:13:18
+   |
+13 |     #[arg(long = 'q')]
+   |                  ^^^
