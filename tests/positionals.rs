@@ -1,4 +1,4 @@
-use getargs_derive::{Error, GetArgs};
+use getargs_derive::{Error, GetArgs, Opt};
 
 #[derive(GetArgs)]
 struct BasicPositionalFlag<'a> {
@@ -111,4 +111,17 @@ fn optional_positionals_reject_extra_arguments() {
     let args = ["a", "b", "1", "extra"];
     let err = OptionalPositionals::from_args(args.into_iter()).unwrap_err();
     assert_eq!(err, Error::UnexpectedArgument("extra"));
+}
+
+#[test]
+fn optional_positionals_are_not_named_options() {
+    let args = ["in.txt", "--level", "3"];
+    let err = OptionalPositionals::from_args(args.into_iter()).unwrap_err();
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Long("level"),
+            suggestion: None,
+        }
+    );
 }

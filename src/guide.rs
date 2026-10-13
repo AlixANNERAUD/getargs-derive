@@ -49,9 +49,5 @@ pub mod errors {}
 pub mod clap {}
 
 #[doc = include_str!("../docs/rustdoc-links.md")]
-#[doc = include_str!("../docs/legacy.md")]
-pub mod legacy {}
-
-#[doc = include_str!("../docs/rustdoc-links.md")]
 #[doc = include_str!("../docs/no_std.md")]
 pub mod no_std {}

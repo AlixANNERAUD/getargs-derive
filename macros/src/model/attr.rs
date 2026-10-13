@@ -5,34 +5,18 @@ pub(crate) type Parser<T> = fn(&ParseNestedMeta, &mut T) -> syn::Result<()>;
 
 pub(crate) struct Key<T> {
     name: &'static str,
-    legacy: bool,
     parse: Parser<T>,
 }
 
 impl<T> Key<T> {
     pub(crate) const fn new(name: &'static str, parse: Parser<T>) -> Self {
-        Self {
-            name,
-            legacy: false,
-            parse,
-        }
-    }
-
-    pub(crate) const fn legacy(name: &'static str, parse: Parser<T>) -> Self {
-        Self {
-            name,
-            legacy: true,
-            parse,
-        }
+        Self { name, parse }
     }
 }
 
 fn supported_keys<T>(keys: &[Key<T>]) -> String {
     keys.iter()
-        .map(|key| match key.legacy {
-            true => format!("`{}` (legacy)", key.name),
-            false => format!("`{}`", key.name),
-        })
+        .map(|key| format!("`{}`", key.name))
         .collect::<Vec<_>>()
         .join(", ")
 }

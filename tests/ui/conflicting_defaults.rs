@@ -7,13 +7,6 @@ struct Cli {
 }
 
 #[derive(GetArgs)]
-struct Legacy {
-    #[arg(long, default_value_t = 4)]
-    #[default(4)]
-    jobs: u32,
-}
-
-#[derive(GetArgs)]
 struct Repeated {
     #[arg(long, default_value_t = 4, default_value_t = 5)]
     jobs: u32,

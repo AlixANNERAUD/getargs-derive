@@ -12,10 +12,4 @@ struct Typed {
     jobs: Option<u32>,
 }
 
-#[derive(GetArgs)]
-struct Legacy {
-    #[default(4)]
-    jobs: Option<u32>,
-}
-
 fn main() {}

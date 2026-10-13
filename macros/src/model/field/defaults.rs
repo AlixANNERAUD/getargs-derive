@@ -3,7 +3,7 @@ use crate::model::attr::require_value;
 use proc_macro2::Span;
 use syn::{Expr, Lit, meta::ParseNestedMeta, spanned::Spanned};
 
-pub(super) fn set_default(
+fn set_default(
     slot: &mut Option<(DefaultSource, DefaultValue)>,
     source: DefaultSource,
     value: DefaultValue,
@@ -14,7 +14,7 @@ pub(super) fn set_default(
             format!("duplicate {} attribute", source.describe())
         } else {
             format!(
-                "conflicting default values: {} and {} cannot be used together; use only `default_value` or `default_value_t`",
+                "conflicting default values: {} and {} cannot be used together; use only one of them",
                 existing.describe(),
                 source.describe()
             )
@@ -50,16 +50,6 @@ pub(super) fn default_value_t(meta: &ParseNestedMeta, raw: &mut RawField) -> syn
     set_default(
         &mut raw.default,
         DefaultSource::DefaultValueT,
-        DefaultValue::Expr(expr),
-        meta.path.span(),
-    )
-}
-
-pub(super) fn default(meta: &ParseNestedMeta, raw: &mut RawField) -> syn::Result<()> {
-    let expr: Expr = require_value(meta, "default", "default = 4")?.parse()?;
-    set_default(
-        &mut raw.default,
-        DefaultSource::ArgDefault,
         DefaultValue::Expr(expr),
         meta.path.span(),
     )

@@ -60,7 +60,6 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 - [Version Flag][guide-version]: `#[command(version)]`, `-V`/`--version` and the `VERSION`/`VERSION_TEXT` constants.
 - [Error Handling][guide-errors]: the `Error` enum, its Clap-style messages and "did you mean" suggestions.
 - [Clap Compatibility][guide-clap]: what is shared with Clap, and what is not supported.
-- [Legacy Syntax][guide-legacy]: deprecated attributes and how to migrate from them.
 - [`no_std` Support][guide-no-std].
 
 Every guide page lists the compile-time diagnostics related to its topic.
@@ -85,5 +84,4 @@ Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
 [guide-version]: docs/version.md
 [guide-errors]: docs/errors.md
 [guide-clap]: docs/clap.md
-[guide-legacy]: docs/legacy.md
 [guide-no-std]: docs/no_std.md
