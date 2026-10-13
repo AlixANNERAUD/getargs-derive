@@ -2,6 +2,7 @@ mod env;
 mod field;
 mod help;
 mod relations;
+mod validation;
 mod version;
 
 use crate::model::{ContainerModel, FieldModel};

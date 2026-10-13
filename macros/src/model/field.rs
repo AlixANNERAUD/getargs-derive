@@ -5,6 +5,7 @@ mod env;
 mod help;
 mod names;
 mod relations;
+mod validation;
 mod value_enum;
 
 use super::attr::{Key, dispatch};
@@ -16,6 +17,8 @@ pub(crate) use aliases::Alias;
 use proc_macro2::Span;
 pub(crate) use relations::Relations;
 use syn::{Expr, Field, Ident, LitStr, Meta, Type, ext::IdentExt, spanned::Spanned};
+use validation::PossibleValues;
+pub(crate) use validation::ValueParser;
 
 const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("action", action::action),
@@ -28,6 +31,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("group", relations::group),
     Key::new("help", help::help),
     Key::new("long", names::long),
+    Key::new("possible_values", validation::possible_values),
     Key::new(
         "required_unless_present",
         relations::required_unless_present,
@@ -38,6 +42,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("short_aliases", aliases::short_aliases),
     Key::new("value_enum", value_enum::value_enum),
     Key::new("value_name", help::value_name),
+    Key::new("value_parser", validation::value_parser),
     Key::new("visible_alias", aliases::visible_alias),
     Key::new("visible_aliases", aliases::visible_aliases),
     Key::new("visible_short_alias", aliases::visible_short_alias),
@@ -82,6 +87,8 @@ pub(crate) struct FieldModel {
     pub(crate) value_name: String,
     pub(crate) relations: Relations,
     pub(crate) value_enum: bool,
+    pub(crate) value_parser: Option<ValueParser>,
+    pub(crate) possible_values: Vec<String>,
     pub(super) short_span: Span,
     pub(super) long_span: Span,
 }
@@ -132,6 +139,8 @@ struct RawField {
     long_aliases: Vec<Alias<String>>,
     env: Option<(Option<String>, Span)>,
     value_enum: Option<Span>,
+    value_parser: Option<ValueParser>,
+    possible_values: Option<PossibleValues>,
 }
 
 fn to_kebab_case(name: &str) -> String {
@@ -356,6 +365,16 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         env
     });
 
+    validation::check(
+        raw.value_parser.as_ref(),
+        raw.possible_values.as_ref(),
+        &kind,
+        value_ty,
+        raw.default.as_ref().map(|(_, value)| value),
+        raw.value_enum.is_some(),
+        &mut errors,
+    );
+
     let value_name = raw
         .value_name
         .map(|(value, _)| value)
@@ -379,6 +398,11 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         value_name,
         relations: raw.relations,
         value_enum: raw.value_enum.is_some(),
+        value_parser: raw.value_parser,
+        possible_values: raw
+            .possible_values
+            .map(|values| values.values)
+            .unwrap_or_default(),
         short_span,
         long_span,
     })

@@ -1,0 +1,41 @@
+error: `value_parser` requires a value, e.g. `value_parser = 1..=64`
+ --> tests/ui/validation_value_parser.rs:5:17
+  |
+5 |     #[arg(long, value_parser)]
+  |                 ^^^^^^^^^^^^
+
+error: `value_parser` expects a function path or a range, e.g. `value_parser = parse_port` or `value_parser = 1..=64`
+ --> tests/ui/validation_value_parser.rs:7:32
+  |
+7 |     #[arg(long, value_parser = "1..=64")]
+  |                                ^^^^^^^^
+
+error: `value_parser` range needs at least one bound, e.g. `value_parser = 1..=64`
+ --> tests/ui/validation_value_parser.rs:9:32
+  |
+9 |     #[arg(long, value_parser = ..)]
+  |                                ^^
+
+error: duplicate `value_parser` attribute
+  --> tests/ui/validation_value_parser.rs:11:40
+   |
+11 |     #[arg(long, value_parser = 1..=64, value_parser = 1..=8)]
+   |                                        ^^^^^^^^^^^^^^^^^^^^
+
+error: a `value_parser` range requires an integer field type, e.g. `u8`; use a function for other types
+  --> tests/ui/validation_value_parser.rs:13:32
+   |
+13 |     #[arg(long, value_parser = 1..=64)]
+   |                                ^^^^^^
+
+error: a `value_parser` range requires an integer field type, e.g. `u8`; use a function for other types
+  --> tests/ui/validation_value_parser.rs:15:32
+   |
+15 |     #[arg(long, value_parser = 0..10)]
+   |                                ^^^^^
+
+error: `value_parser` cannot be used on flags because they do not take a value
+  --> tests/ui/validation_value_parser.rs:17:32
+   |
+17 |     #[arg(long, value_parser = 1..=64)]
+   |                                ^^^^^^

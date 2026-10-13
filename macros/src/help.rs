@@ -11,7 +11,7 @@ struct Entry {
     description: Text,
 }
 
-fn expr_text(expr: &Expr) -> String {
+pub(crate) fn expr_text(expr: &Expr) -> String {
     match expr {
         Expr::Lit(literal) => match &literal.lit {
             Lit::Str(value) => value.value(),
@@ -28,7 +28,7 @@ fn expr_text(expr: &Expr) -> String {
     }
 }
 
-fn quote_if_spaced(text: String) -> String {
+pub(crate) fn quote_if_spaced(text: String) -> String {
     if text.is_empty() || text.contains(char::is_whitespace) {
         format!("{text:?}")
     } else {
@@ -62,6 +62,24 @@ fn value_enum_default(field: &FieldModel, default: &DefaultValue) -> Option<Segm
             #fallback,
         )
     }))
+}
+
+fn possible_values(field: &FieldModel) -> Option<Segment> {
+    if field.value_enum {
+        let value_ty = &field.value_ty;
+        return Some(Segment::List(
+            quote! { <#value_ty as getargs_derive::ValueEnum>::POSSIBLE_VALUES },
+        ));
+    }
+    if field.possible_values.is_empty() {
+        return None;
+    }
+    let values: Vec<String> = field
+        .possible_values
+        .iter()
+        .map(|value| quote_if_spaced(value.clone()))
+        .collect();
+    Some(Segment::Text(values.join(", ")))
 }
 
 fn description(field: &FieldModel) -> Text {
@@ -109,11 +127,10 @@ fn description(field: &FieldModel) -> Text {
             short_aliases.join(", ")
         ))]);
     }
-    if field.value_enum && takes_value {
-        let value_ty = &field.value_ty;
+    if let (Some(values), true) = (possible_values(field), takes_value) {
         parts.push(vec![
             Segment::Text("[possible values: ".to_owned()),
-            Segment::List(quote! { <#value_ty as getargs_derive::ValueEnum>::POSSIBLE_VALUES }),
+            values,
             Segment::Text("]".to_owned()),
         ]);
     }

@@ -14,6 +14,9 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | `#[arg(help = "text")]`           | Description shown in the generated help. Overrides the field's doc comment. See [Generated Help][guide-help]. |
 | `#[arg(value_name = "NAME")]`     | Placeholder shown in the generated help (`<NAME>`). Defaults to the upper-cased field name. Not allowed on flags. |
 | `#[arg(value_enum)]`              | Field of a `ValueEnum` type: parsed by variant name, with its possible values listed in the help. See [Value Enums][guide-value-enum]. |
+| `#[arg(value_parser = parse)]`    | Converts the value with a function `fn(&str) -> Result<T, E>` instead of `FromStr`. See [Value Validation][guide-validation]. |
+| `#[arg(value_parser = 1..=64)]`   | Rejects integer values outside the range. See [Value Validation][guide-validation].                     |
+| `#[arg(possible_values = ["a", "b"])]` | Rejects values that are not one of the strings, and lists them in the help. See [Value Validation][guide-validation]. |
 | `#[arg(action = Count)]`          | Flag counting its occurrences on an integer field. See [Flag Actions][guide-actions].                   |
 | `#[arg(action = SetFalse)]`       | Flag on a `bool` field that defaults to `true` and is set to `false` by its presence.                   |
 | `#[arg(action = SetTrue)]`        | Explicit form of the default `bool` flag behaviour.                                                     |
@@ -38,7 +41,8 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | Integer with `action = Count` | ✗      | ✓            | Flag counting its occurrences.                                              |
 | `NonZeroU*` / `NonZeroI*` | ✓          | ✓            | Parsed via `.parse()`. Required unless a default is given.                  |
 | Any `FromStr` type        | ✓          | ✓            | Parsed via `.parse()`. Required unless a default is given.                  |
-| `Option<T>`               | ✓          | ✓            | Optional, `None` when absent. `T` is `&str` or a `FromStr` type, not `bool`. |
+| Any type with `value_parser = function` | ✓ | ✓          | Converted by the function. See [Value Validation][guide-validation].        |
+| `Option<T>`               | ✓          | ✓            | Optional, `None` when absent. `T` is any type above except `bool`.          |
 
 ## Container Attributes
 
@@ -107,5 +111,6 @@ The macro reports a compile error, pointing at the offending attribute or field,
 [guide-env]: env.md
 [guide-help]: help.md
 [guide-positionals]: positionals.md
+[guide-validation]: validation.md
 [guide-value-enum]: value_enum.md
 [guide-version]: version.md

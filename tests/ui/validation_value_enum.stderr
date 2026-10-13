@@ -1,0 +1,11 @@
+error: `possible_values` cannot be combined with `value_enum`, which already defines the accepted values
+  --> tests/ui/validation_value_enum.rs:15:47
+   |
+15 |     #[arg(long, value_enum, possible_values = ["fast"])]
+   |                                               ^^^^^^^^
+
+error: `value_parser` cannot be combined with `value_enum`, which already defines the accepted values
+  --> tests/ui/validation_value_enum.rs:17:44
+   |
+17 |     #[arg(long, value_enum, value_parser = parse_mode)]
+   |                                            ^^^^^^^^^^

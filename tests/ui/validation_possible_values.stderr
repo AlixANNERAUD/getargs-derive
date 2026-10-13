@@ -1,0 +1,47 @@
+error: `possible_values` requires a value, e.g. `possible_values = ["fast", "slow"]`
+ --> tests/ui/validation_possible_values.rs:5:17
+  |
+5 |     #[arg(long, possible_values)]
+  |                 ^^^^^^^^^^^^^^^
+
+error: `possible_values` expects an array of string literals, e.g. `possible_values = ["fast", "slow"]`
+ --> tests/ui/validation_possible_values.rs:7:35
+  |
+7 |     #[arg(long, possible_values = "fast")]
+  |                                   ^^^^^^
+
+error: `possible_values` cannot be empty
+ --> tests/ui/validation_possible_values.rs:9:35
+  |
+9 |     #[arg(long, possible_values = [])]
+  |                                   ^^
+
+error: `possible_values` expects string literals, e.g. `possible_values = ["fast", "slow"]`
+  --> tests/ui/validation_possible_values.rs:11:44
+   |
+11 |     #[arg(long, possible_values = ["fast", 1, ""])]
+   |                                            ^
+
+error: a possible value cannot be empty
+  --> tests/ui/validation_possible_values.rs:11:47
+   |
+11 |     #[arg(long, possible_values = ["fast", 1, ""])]
+   |                                               ^^
+
+error: duplicate possible value "fast"
+  --> tests/ui/validation_possible_values.rs:13:52
+   |
+13 |     #[arg(long, possible_values = ["fast", "slow", "fast"])]
+   |                                                    ^^^^^^
+
+error: `default_value` "turbo" is not one of the possible values: fast, slow
+  --> tests/ui/validation_possible_values.rs:15:69
+   |
+15 |     #[arg(long, possible_values = ["fast", "slow"], default_value = "turbo")]
+   |                                                                     ^^^^^^^
+
+error: `possible_values` cannot be used on flags because they do not take a value
+  --> tests/ui/validation_possible_values.rs:17:35
+   |
+17 |     #[arg(long, possible_values = ["on", "off"], action = SetFalse)]
+   |                                   ^^^^^^^^^^^^^
