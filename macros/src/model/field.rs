@@ -1,4 +1,5 @@
 mod action;
+mod aliases;
 mod defaults;
 mod help;
 mod kind;
@@ -10,6 +11,7 @@ use super::doc::short_doc;
 use super::errors::Errors;
 use super::types::{is_bool_type, is_count_type, is_str_reference_type, option_inner_type};
 pub(crate) use action::FlagAction;
+pub(crate) use aliases::Alias;
 use defaults::set_default;
 use proc_macro2::Span;
 pub(crate) use relations::Relations;
@@ -17,6 +19,8 @@ use syn::{Expr, Field, Ident, LitStr, Meta, Type, ext::IdentExt, spanned::Spanne
 
 const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("action", action::action),
+    Key::new("alias", aliases::alias),
+    Key::new("aliases", aliases::aliases),
     Key::new("conflicts_with", relations::conflicts_with),
     Key::legacy("default", defaults::default),
     Key::new("default_value", defaults::default_value),
@@ -32,7 +36,13 @@ const ARG_KEYS: &[Key<RawField>] = &[
     ),
     Key::new("requires", relations::requires),
     Key::new("short", names::short),
+    Key::new("short_alias", aliases::short_alias),
+    Key::new("short_aliases", aliases::short_aliases),
     Key::new("value_name", help::value_name),
+    Key::new("visible_alias", aliases::visible_alias),
+    Key::new("visible_aliases", aliases::visible_aliases),
+    Key::new("visible_short_alias", aliases::visible_short_alias),
+    Key::new("visible_short_aliases", aliases::visible_short_aliases),
 ];
 
 pub(crate) enum FieldKind {
@@ -64,6 +74,8 @@ pub(crate) struct FieldModel {
     pub(crate) kind: FieldKind,
     pub(crate) short: Option<char>,
     pub(crate) long: Option<String>,
+    pub(crate) short_aliases: Vec<Alias<char>>,
+    pub(crate) long_aliases: Vec<Alias<String>>,
     pub(crate) default: Option<DefaultValue>,
     pub(crate) is_str: bool,
     pub(crate) help: Option<String>,
@@ -121,6 +133,8 @@ struct RawField {
     value_name: Option<(String, Span)>,
     action: Option<(FlagAction, syn::Path)>,
     relations: Relations,
+    short_aliases: Vec<Alias<char>>,
+    long_aliases: Vec<Alias<String>>,
 }
 
 fn to_kebab_case(name: &str) -> String {
@@ -171,25 +185,32 @@ fn parse_raw_field(field: &Field) -> syn::Result<RawField> {
     errors.finish(raw)
 }
 
-fn validate_short(short: char, span: Span) -> syn::Result<()> {
+fn validate_short(key: &str, short: char, span: Span) -> syn::Result<()> {
     if short == '-' {
-        return Err(syn::Error::new(span, "`short` cannot be `-`"));
+        return Err(syn::Error::new(span, format!("`{key}` cannot be `-`")));
     }
     if short.is_whitespace() {
-        return Err(syn::Error::new(span, "`short` cannot be whitespace"));
+        return Err(syn::Error::new(
+            span,
+            format!("`{key}` cannot be whitespace"),
+        ));
     }
     Ok(())
 }
 
-fn validate_long(long: &str, span: Span) -> syn::Result<()> {
+fn validate_long(key: &str, long: &str, span: Span) -> syn::Result<()> {
     if long.is_empty() {
-        return Err(syn::Error::new(span, "`long` cannot be empty"));
+        return Err(syn::Error::new(span, format!("`{key}` cannot be empty")));
     }
     if long.starts_with('-') {
         return Err(syn::Error::new(
             span,
             format!(
-                "`long` must not start with `-`; write `long = \"{}\"`",
+                "`{key}` must not start with `-`; write `{}\"{}\"`",
+                match key.ends_with("aliases") {
+                    true => String::new(),
+                    false => format!("{key} = "),
+                },
                 long.trim_start_matches('-')
             ),
         ));
@@ -197,7 +218,7 @@ fn validate_long(long: &str, span: Span) -> syn::Result<()> {
     if long.contains(|character: char| character.is_whitespace() || character == '=') {
         return Err(syn::Error::new(
             span,
-            "`long` cannot contain whitespace or `=`",
+            format!("`{key}` cannot contain whitespace or `=`"),
         ));
     }
     Ok(())
@@ -247,6 +268,19 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         errors.push(syn::Error::new(
             span,
             "`positional` cannot be combined with `short` or `long`",
+        ));
+    }
+
+    if !named
+        && let Some(span) = raw
+            .short_aliases
+            .first()
+            .map(|alias| alias.span)
+            .or_else(|| raw.long_aliases.first().map(|alias| alias.span))
+    {
+        errors.push(syn::Error::new(
+            span,
+            "aliases require a named option; add `short` and/or `long`, e.g. `#[arg(long, alias = \"other\")]`",
         ));
     }
 
@@ -303,7 +337,7 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
                     .next()
                     .expect("field name should never be empty")
             });
-            if let Err(error) = validate_short(short, span) {
+            if let Err(error) = validate_short("short", short, span) {
                 errors.push(error);
             }
             (Some(short), span)
@@ -314,7 +348,7 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
     let (long, long_span) = match raw.long {
         Some((value, span)) => {
             let long = value.unwrap_or_else(|| to_kebab_case(&name));
-            if let Err(error) = validate_long(&long, span) {
+            if let Err(error) = validate_long("long", &long, span) {
                 errors.push(error);
             }
             (Some(long), span)
@@ -357,6 +391,8 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         kind,
         short,
         long,
+        short_aliases: raw.short_aliases,
+        long_aliases: raw.long_aliases,
         default: raw.default.map(|(_, value)| value),
         help: raw.help.or_else(|| short_doc(&field.attrs)),
         value_name,

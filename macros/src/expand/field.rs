@@ -12,14 +12,19 @@ pub(super) struct FieldTokens {
 }
 
 fn option_pattern(field: &FieldModel) -> TokenStream {
-    match (field.short, &field.long) {
-        (Some(short), Some(long)) => {
-            quote! { getargs::Arg::Short(#short) | getargs::Arg::Long(#long) }
-        }
-        (Some(short), None) => quote! { getargs::Arg::Short(#short) },
-        (None, Some(long)) => quote! { getargs::Arg::Long(#long) },
-        (None, None) => unreachable!("named options always have a short or long name"),
-    }
+    let shorts = field
+        .short
+        .into_iter()
+        .chain(field.short_aliases.iter().map(|alias| alias.name));
+    let longs = field
+        .long
+        .iter()
+        .chain(field.long_aliases.iter().map(|alias| &alias.name));
+    let patterns: Vec<TokenStream> = shorts
+        .map(|short| quote! { getargs::Arg::Short(#short) })
+        .chain(longs.map(|long| quote! { getargs::Arg::Long(#long) }))
+        .collect();
+    quote! { #(#patterns)|* }
 }
 
 fn parse_value(field: &FieldModel, value: TokenStream) -> TokenStream {

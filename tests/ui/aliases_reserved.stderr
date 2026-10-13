@@ -1,0 +1,23 @@
+error: short option `-h` is reserved for the generated help flag; choose another short name, or add `#[command(disable_help_flag)]` to the struct to handle `-h` yourself
+ --> tests/ui/aliases_reserved.rs:6:47
+  |
+6 |     #[arg(long, alias = "help", short_alias = 'h')]
+  |                                               ^^^
+
+error: long option `--help` is reserved for the generated help flag; choose another long name, or add `#[command(disable_help_flag)]` to the struct to handle `--help` yourself
+ --> tests/ui/aliases_reserved.rs:6:25
+  |
+6 |     #[arg(long, alias = "help", short_alias = 'h')]
+  |                         ^^^^^^
+
+error: short option `-V` is reserved for the generated version flag; choose another short name, or remove `version` from `#[command(...)]` to handle `-V` yourself
+ --> tests/ui/aliases_reserved.rs:8:66
+  |
+8 |     #[arg(long, visible_alias = "version", visible_short_alias = 'V')]
+  |                                                                  ^^^
+
+error: long option `--version` is reserved for the generated version flag; choose another long name, or remove `version` from `#[command(...)]` to handle `--version` yourself
+ --> tests/ui/aliases_reserved.rs:8:33
+  |
+8 |     #[arg(long, visible_alias = "version", visible_short_alias = 'V')]
+  |                                 ^^^^^^^^^

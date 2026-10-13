@@ -1,0 +1,29 @@
+error: short option `-v` is already used by field `verbose`
+ --> tests/ui/aliases_duplicate.rs:7:50
+  |
+7 |     #[arg(long, alias = "verbose", short_alias = 'v')]
+  |                                                  ^^^
+
+error: long option `--verbose` is already used by field `verbose`
+ --> tests/ui/aliases_duplicate.rs:7:25
+  |
+7 |     #[arg(long, alias = "verbose", short_alias = 'v')]
+  |                         ^^^^^^^^^
+
+error: short option `-o` is already used by field `output`
+ --> tests/ui/aliases_duplicate.rs:9:73
+  |
+9 |     #[arg(long, aliases = ["out", "out"], visible_short_aliases = ['o', 'o'])]
+  |                                                                         ^^^
+
+error: long option `--out` is already used by field `output`
+ --> tests/ui/aliases_duplicate.rs:9:35
+  |
+9 |     #[arg(long, aliases = ["out", "out"], visible_short_aliases = ['o', 'o'])]
+  |                                   ^^^^^
+
+error: short option `-o` is already used by field `output`
+  --> tests/ui/aliases_duplicate.rs:11:55
+   |
+11 |     #[arg(long, visible_alias = "dest", short_alias = 'o')]
+   |                                                       ^^^

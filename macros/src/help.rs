@@ -54,6 +54,24 @@ fn description(field: &FieldModel) -> String {
     {
         parts.push(format!("[default: {}]", default_text(default)));
     }
+    let aliases: Vec<String> = field
+        .long_aliases
+        .iter()
+        .filter(|alias| alias.visible)
+        .map(|alias| format!("--{}", alias.name))
+        .collect();
+    if !aliases.is_empty() {
+        parts.push(format!("[aliases: {}]", aliases.join(", ")));
+    }
+    let short_aliases: Vec<String> = field
+        .short_aliases
+        .iter()
+        .filter(|alias| alias.visible)
+        .map(|alias| format!("-{}", alias.name))
+        .collect();
+    if !short_aliases.is_empty() {
+        parts.push(format!("[short aliases: {}]", short_aliases.join(", ")));
+    }
     parts.join(" ")
 }
 

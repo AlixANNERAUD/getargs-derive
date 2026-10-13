@@ -1,5 +1,6 @@
 [guide-attributes]: crate::guide::attributes
 [guide-actions]: crate::guide::actions
+[guide-aliases]: crate::guide::aliases
 [guide-defaults]: crate::guide::defaults
 [guide-positionals]: crate::guide::positionals
 [guide-relations]: crate::guide::relations

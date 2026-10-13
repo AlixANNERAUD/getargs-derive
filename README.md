@@ -50,6 +50,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 
 - [Attribute Reference][guide-attributes]: `#[arg(...)]` and `#[command(...)]` attributes, argument resolution and supported field types.
 - [Flag Actions][guide-actions]: `SetTrue`, `SetFalse` and `Count` flags.
+- [Argument Aliases][guide-aliases]: hidden and visible long and short aliases.
 - [Default Values][guide-defaults]: `default_value` and `default_value_t`.
 - [Positional and Optional Arguments][guide-positionals]: positional arguments and `Option<T>` fields.
 - [Argument Relations][guide-relations]: `conflicts_with`, `requires`, `required_unless_present` and argument groups.
@@ -72,6 +73,7 @@ Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
 
 [guide-attributes]: docs/attributes.md
 [guide-actions]: docs/actions.md
+[guide-aliases]: docs/aliases.md
 [guide-defaults]: docs/defaults.md
 [guide-positionals]: docs/positionals.md
 [guide-relations]: docs/relations.md

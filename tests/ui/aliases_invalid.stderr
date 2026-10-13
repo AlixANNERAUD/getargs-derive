@@ -1,0 +1,47 @@
+error: `alias` expects a string literal, e.g. `alias = "name"`
+ --> tests/ui/aliases_invalid.rs:5:25
+  |
+5 |     #[arg(long, alias = 'x')]
+  |                         ^^^
+
+error: `alias` must not start with `-`; write `alias = "second"`
+ --> tests/ui/aliases_invalid.rs:7:25
+  |
+7 |     #[arg(long, alias = "--second")]
+  |                         ^^^^^^^^^^
+
+error: `aliases` must not start with `-`; write `"third"`
+ --> tests/ui/aliases_invalid.rs:9:34
+  |
+9 |     #[arg(long, aliases = ["ok", "--third"])]
+  |                                  ^^^^^^^^^
+
+error: `aliases` expects an array of string literals, e.g. `aliases = ["first", "second"]`
+  --> tests/ui/aliases_invalid.rs:11:27
+   |
+11 |     #[arg(long, aliases = "fourth")]
+   |                           ^^^^^^^^
+
+error: `short_alias` expects a character literal, e.g. `short_alias = 'x'`
+  --> tests/ui/aliases_invalid.rs:13:31
+   |
+13 |     #[arg(long, short_alias = "f")]
+   |                               ^^^
+
+error: `short_aliases` cannot be `-`
+  --> tests/ui/aliases_invalid.rs:15:34
+   |
+15 |     #[arg(long, short_aliases = ['-'])]
+   |                                  ^^^
+
+error: `visible_aliases` cannot be empty
+  --> tests/ui/aliases_invalid.rs:17:36
+   |
+17 |     #[arg(long, visible_aliases = [""])]
+   |                                    ^^
+
+error: `visible_short_alias` requires a value, e.g. `visible_short_alias = 'x'`
+  --> tests/ui/aliases_invalid.rs:19:17
+   |
+19 |     #[arg(long, visible_short_alias)]
+   |                 ^^^^^^^^^^^^^^^^^^^
