@@ -2,8 +2,9 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use std::collections::HashMap;
 use syn::{
-    Attribute, Data, DeriveInput, Expr, ExprLit, Field, Fields, Ident, Lit, LitStr, Meta,
-    MetaNameValue, Token, Type, ext::IdentExt, meta::ParseNestedMeta, spanned::Spanned,
+    Attribute, Data, DeriveInput, Expr, ExprLit, Field, Fields, GenericArgument, Ident, Lit,
+    LitStr, Meta, MetaNameValue, PathArguments, Token, Type, ext::IdentExt, meta::ParseNestedMeta,
+    spanned::Spanned,
 };
 
 const SUPPORTED_ARG_KEYS: &str = "`short`, `long`, `help`, `value_name`, `default_value`, `default_value_t`, `flag`, `positional`, `default` (legacy)";
@@ -27,10 +28,21 @@ pub(crate) enum DefaultValue {
     Expr(Expr),
 }
 
+impl DefaultValue {
+    fn span(&self) -> Span {
+        match self {
+            DefaultValue::Literal(literal) => literal.span(),
+            DefaultValue::Expr(expr) => expr.span(),
+        }
+    }
+}
+
 pub(crate) struct FieldModel {
     pub(crate) ident: Ident,
     pub(crate) name: String,
     pub(crate) ty: Type,
+    pub(crate) value_ty: Type,
+    pub(crate) optional: bool,
     pub(crate) kind: FieldKind,
     pub(crate) short: Option<char>,
     pub(crate) long: Option<String>,
@@ -48,6 +60,10 @@ impl FieldModel {
             (FieldKind::Positional, _) | (_, None) => &self.name,
             (_, Some(long)) => long,
         }
+    }
+
+    pub(crate) fn is_optional(&self) -> bool {
+        self.optional || self.default.is_some()
     }
 }
 
@@ -109,6 +125,26 @@ fn is_bool_type(ty: &Type) -> bool {
             .map(|segment| segment.ident == "bool")
             .unwrap_or(false),
         _ => false,
+    }
+}
+
+fn option_inner_type(ty: &Type) -> Option<&Type> {
+    let Type::Path(path) = ty else {
+        return None;
+    };
+    if path.qself.is_some() {
+        return None;
+    }
+    let segment = path.path.segments.last()?;
+    if segment.ident != "Option" {
+        return None;
+    }
+    let PathArguments::AngleBracketed(arguments) = &segment.arguments else {
+        return None;
+    };
+    match arguments.args.first() {
+        Some(GenericArgument::Type(inner)) if arguments.args.len() == 1 => Some(inner),
+        _ => None,
     }
 }
 
@@ -424,9 +460,34 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
     };
     let raw = parse_raw_field(field)?;
     let name = ident.unraw().to_string();
+    let inner_ty = option_inner_type(&field.ty);
+    let value_ty = inner_ty.unwrap_or(&field.ty);
     let is_bool = is_bool_type(&field.ty);
     let named = raw.short.is_some() || raw.long.is_some();
     let mut errors = Errors::default();
+
+    if let Some(inner) = inner_ty {
+        if is_bool_type(inner) {
+            errors.push(syn::Error::new_spanned(
+                &field.ty,
+                "`Option<bool>` fields are not supported; use a `bool` field with `short` and/or `long` to make it a flag",
+            ));
+        } else if option_inner_type(inner).is_some() {
+            errors.push(syn::Error::new_spanned(
+                &field.ty,
+                "`Option<Option<T>>` fields are not supported; use `Option<T>`",
+            ));
+        }
+        if let Some((source, value)) = &raw.default {
+            errors.push(syn::Error::new(
+                value.span(),
+                format!(
+                    "`Option<T>` fields are `None` when absent and cannot have a default; remove {} or change the field type to `T`",
+                    source.describe()
+                ),
+            ));
+        }
+    }
 
     if let Some(span) = raw.positional
         && named
@@ -508,7 +569,9 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
     errors.finish(FieldModel {
         ident,
         name,
-        is_str: is_str_reference_type(&field.ty),
+        is_str: is_str_reference_type(value_ty),
+        value_ty: value_ty.clone(),
+        optional: inner_ty.is_some(),
         ty: field.ty.clone(),
         kind,
         short,
@@ -562,9 +625,9 @@ fn validate_struct(fields: &[FieldModel], help_enabled: bool, errors: &mut Error
         }
 
         if let FieldKind::Positional = field.kind {
-            match (&field.default, optional_positional) {
-                (Some(_), None) => optional_positional = Some(&field.name),
-                (None, Some(optional)) => errors.push(syn::Error::new(
+            match (field.is_optional(), optional_positional) {
+                (true, None) => optional_positional = Some(&field.name),
+                (false, Some(optional)) => errors.push(syn::Error::new(
                     field.ident.span(),
                     format!(
                         "required positional argument `{}` cannot follow optional positional argument `{optional}`",

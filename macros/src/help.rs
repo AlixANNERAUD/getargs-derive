@@ -58,9 +58,10 @@ fn description(field: &FieldModel) -> String {
 }
 
 fn positional_label(field: &FieldModel) -> String {
-    match field.default {
-        Some(_) => format!("[{}]", field.value_name),
-        None => format!("<{}>", field.value_name),
+    if field.is_optional() {
+        format!("[{}]", field.value_name)
+    } else {
+        format!("<{}>", field.value_name)
     }
 }
 

@@ -51,9 +51,10 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 The attributes follow the conventions of [Clap's derive API](https://docs.rs/clap/latest/clap/_derive/index.html):
 `#[arg(short, long)]`, `short = 'x'`, `long = "name"`, `default_value`, `default_value_t`, `help` and `value_name` mean the same thing here as they do in Clap,
 and so do the `name`, `about` and `disable_help_flag` keys of `#[command(...)]`. Doc comments become help text the way they do in Clap, and the generated help uses Clap's layout.
+`Option<T>` fields are optional arguments that are `None` when absent, as in Clap.
 
 This crate only implements a **Clap-inspired subset**. It is not a drop-in replacement for Clap and does not aim for full Clap API compatibility:
-other `#[command(...)]` keys (`version`, `long_about`, ...), long help, subcommands, `Option<T>` / `Vec<T>` fields, value enums, actions, and most other Clap attributes are not supported.
+other `#[command(...)]` keys (`version`, `long_about`, ...), long help, subcommands, `Vec<T>` fields, `Option<bool>` and `Option<Option<T>>` fields, value enums, actions, and most other Clap attributes are not supported.
 Unsupported attributes are rejected at compile time rather than silently ignored.
 
 ## Attribute Reference
@@ -79,6 +80,7 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 - A named `bool` field is a **flag**: its presence sets it to `true`, and it defaults to `false`. It never consumes a value.
 - A named field of any other type is an **option** taking a value (`-j 4`, `-j4`, `--jobs 4` or `--jobs=4`).
 - Every other field is a **positional argument**, filled in declaration order. `bool` fields cannot be positional.
+- A field of type `Option<T>` is **optional**: it is `None` when absent, and `Some(value)` otherwise, with the value parsed as for a `T` field. See [Optional Arguments](#optional-arguments).
 
 ### Default Values
 
@@ -109,7 +111,7 @@ assert_eq!(server.workers, 4);
 A `default_value` string is only parsed when the argument is absent; if it does not parse, `parse` returns `Error::ParseError`.
 A field may have at most one default.
 
-Arguments without a default are required. Positional arguments with a default are optional, and must come after all required positional arguments:
+Arguments without a default are required, unless they are `Option<T>`. Positional arguments with a default are optional, and must come after all required positional arguments:
 
 ```rust
 use getargs_derive::GetArgs;
@@ -128,18 +130,51 @@ assert_eq!(copy.destination, "out.txt");
 # }
 ```
 
+### Optional Arguments
+
+Wrap a field's type in `Option<T>` to make it optional without a default, for named options and positional arguments alike.
+The inner value is borrowed for `Option<&str>` and parsed with `FromStr` otherwise:
+
+```rust
+use getargs_derive::GetArgs;
+
+#[derive(GetArgs)]
+struct Fetch<'a> {
+    url: &'a str,
+    destination: Option<&'a str>,
+    #[arg(short, long)]
+    retries: Option<u8>,
+}
+
+# fn main() -> Result<(), getargs_derive::Error> {
+let fetch = Fetch::from_args(["https://example.com"].into_iter())?;
+assert_eq!(fetch.destination, None);
+assert_eq!(fetch.retries, None);
+
+let fetch = Fetch::from_args(["https://example.com", "page.html", "-r", "3"].into_iter())?;
+assert_eq!(fetch.destination, Some("page.html"));
+assert_eq!(fetch.retries, Some(3));
+# Ok(())
+# }
+```
+
+- An `Option<T>` field cannot have a default: use a `T` field with `default_value` or `default_value_t` instead.
+- An `Option<T>` positional argument is optional, so it must come after all required positional arguments, like a positional argument with a default.
+- `Option<bool>` is rejected: use a `bool` flag, which is `false` when absent. `Option<Option<T>>` is rejected as well.
+- In the generated help, `Option<T>` positionals are shown as `[NAME]`, and no default is displayed.
+
 ### Compile-Time Diagnostics
 
 The macro reports a compile error, pointing at the offending attribute or field, for:
 
 - unknown `#[arg(...)]` keys, and keys given more than once on the same field;
-- more than one default on the same field;
+- more than one default on the same field, or any default on an `Option<T>` field;
 - `short` values that are not a character literal, or are `-` or whitespace;
 - `long` values that are not a string literal, are empty, start with `-`, or contain whitespace or `=`;
 - two fields using the same short or long name;
 - a field using `-h` or `--help` while the generated help flag is enabled;
 - unknown or repeated `#[command(...)]` keys, and `value_name` on a flag;
-- positional `bool` fields;
+- positional `bool` fields, and `Option<bool>` or `Option<Option<T>>` fields;
 - a required positional argument following an optional one;
 - legacy `flag` on a non-`bool` field or without `short`/`long`, and legacy `positional` combined with `short`/`long`;
 - enums, unions, tuple structs and unit structs.
@@ -192,7 +227,7 @@ Options:
 The text follows Clap's layout:
 
 - The **about** line is the first paragraph of the struct's doc comment, or `#[command(about = "...")]`.
-- The **usage** line shows `[OPTIONS]` when there is at least one named option (the help flag counts), then each positional argument in order: `<NAME>` when required, `[NAME]` when it has a default.
+- The **usage** line shows `[OPTIONS]` when there is at least one named option (the help flag counts), then each positional argument in order: `<NAME>` when required, `[NAME]` when it has a default or is an `Option<T>`.
 - Each **argument description** is the first paragraph of the field's doc comment, or `#[arg(help = "...")]`. As in Clap, the lines of the paragraph are joined with spaces and a single trailing period is removed; an explicit `help` is used as written.
 - Defaults are shown as `[default: value]`, except on flags. A `default_value` or string `default_value_t` is shown as its string (quoted if it contains whitespace), any other `default_value_t` as its Rust expression.
 - Empty sections are omitted. The text has no trailing newline.
@@ -308,6 +343,7 @@ Keep only `short` or only `long` if you do not want both names. Note the behavio
 | `bool`                    | ✗          | ✓            | Flag, set to `true` by its presence.                                        |
 | `NonZeroU*` / `NonZeroI*` | ✓          | ✓            | Parsed via `.parse()`. Required unless a default is given.                  |
 | Any `FromStr` type        | ✓          | ✓            | Parsed via `.parse()`. Required unless a default is given.                  |
+| `Option<T>`               | ✓          | ✓            | Optional, `None` when absent. `T` is `&str` or a `FromStr` type, not `bool`. |
 
 ## Error Handling
 

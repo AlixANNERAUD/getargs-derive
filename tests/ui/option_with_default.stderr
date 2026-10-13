@@ -1,0 +1,17 @@
+error: `Option<T>` fields are `None` when absent and cannot have a default; remove `default_value` or change the field type to `T`
+ --> tests/ui/option_with_default.rs:5:33
+  |
+5 |     #[arg(long, default_value = "out.txt")]
+  |                                 ^^^^^^^^^
+
+error: `Option<T>` fields are `None` when absent and cannot have a default; remove `default_value_t` or change the field type to `T`
+  --> tests/ui/option_with_default.rs:11:36
+   |
+11 |     #[arg(short, default_value_t = 4)]
+   |                                    ^
+
+error: `Option<T>` fields are `None` when absent and cannot have a default; remove `#[default]` or change the field type to `T`
+  --> tests/ui/option_with_default.rs:17:15
+   |
+17 |     #[default(4)]
+   |               ^
