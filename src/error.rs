@@ -98,6 +98,32 @@ pub enum Error<'a> {
         value: &'a str,
     },
 
+    /// A value is not one of the argument's `possible_values`, e.g. `turbo` for
+    /// `possible_values = ["fast", "slow"]`.
+    ///
+    /// This is also returned when a `default_value` string is not one of them.
+    InvalidPossibleValue {
+        /// The argument name, e.g. `"--mode <MODE>"`.
+        name: &'static str,
+        /// The value that was given.
+        value: &'a str,
+        /// The accepted values, in declaration order, e.g. `["fast", "slow"]`.
+        possible_values: &'static [&'static str],
+    },
+
+    /// A value parsed into the field type but is outside the argument's `value_parser` range,
+    /// e.g. `0` for `value_parser = 1..=64`.
+    ///
+    /// This is also returned when a `default_value` string is outside the range.
+    ValueOutOfRange {
+        /// The argument name, e.g. `"--jobs <JOBS>"`.
+        name: &'static str,
+        /// The value that was given.
+        value: &'a str,
+        /// The range as written in the attribute, e.g. `"1..=64"`.
+        range: &'static str,
+    },
+
     /// Help was requested with `-h` or `--help`.
     ///
     /// This is not a parse failure: the string is the generated help text (the struct's `HELP`
@@ -181,6 +207,33 @@ impl core::fmt::Display for Error<'_> {
             }
             Error::InvalidValue { name, value } => {
                 write!(f, "invalid value '{value}' for '{name}'")
+            }
+            Error::InvalidPossibleValue {
+                name,
+                value,
+                possible_values,
+            } => {
+                write!(
+                    f,
+                    "invalid value '{value}' for '{name}'\n  [possible values: "
+                )?;
+                for (index, possible) in possible_values.iter().enumerate() {
+                    if index > 0 {
+                        f.write_str(", ")?;
+                    }
+                    if possible.is_empty() || possible.contains(char::is_whitespace) {
+                        write!(f, "{possible:?}")?;
+                    } else {
+                        f.write_str(possible)?;
+                    }
+                }
+                f.write_str("]")
+            }
+            Error::ValueOutOfRange { name, value, range } => {
+                write!(
+                    f,
+                    "invalid value '{value}' for '{name}': {value} is not in {range}"
+                )
             }
             Error::Help(help) => f.write_str(help),
             Error::Version(version) => f.write_str(version),

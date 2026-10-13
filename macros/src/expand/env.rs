@@ -1,3 +1,4 @@
+use super::validation::convert;
 use crate::model::FieldModel;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -10,26 +11,7 @@ pub(super) fn env_lookup(field: &FieldModel) -> Option<TokenStream> {
     let env = field.env.as_deref()?;
     let value_ident = format_ident!("__value_{}", field.name);
     let error_name = format!("{} [env: {env}]", field.error_name());
-    let value_ty = &field.value_ty;
-    let parsed = if field.value_enum {
-        quote! {
-            <#value_ty as getargs_derive::ValueEnum>::from_value(value).ok_or(
-                getargs_derive::Error::InvalidValue {
-                    name: #error_name,
-                    value,
-                },
-            )?
-        }
-    } else if field.is_str {
-        quote! { value }
-    } else {
-        quote! {
-            value.parse().map_err(|_| getargs_derive::Error::InvalidValue {
-                name: #error_name,
-                value,
-            })?
-        }
-    };
+    let parsed = convert(field, quote! { value }, &error_name);
     Some(quote! {
         if #value_ident.is_none() {
             if let core::option::Option::Some(value) = __getargs_env(#env) {

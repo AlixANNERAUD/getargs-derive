@@ -6,6 +6,7 @@
 [guide-env]: crate::guide::env
 [guide-positionals]: crate::guide::positionals
 [guide-relations]: crate::guide::relations
+[guide-validation]: crate::guide::validation
 [guide-help]: crate::guide::help
 [guide-version]: crate::guide::version
 [guide-errors]: crate::guide::errors

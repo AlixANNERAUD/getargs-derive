@@ -1,4 +1,5 @@
 use super::env::env_lookup;
+use super::validation::convert;
 use crate::model::{DefaultValue, FieldKind, FieldModel, FlagAction};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -28,43 +29,12 @@ fn option_pattern(field: &FieldModel) -> TokenStream {
     quote! { #(#patterns)|* }
 }
 
-fn parse_value(field: &FieldModel, value: TokenStream) -> TokenStream {
-    let error_name = field.error_name();
-    let value_ty = &field.value_ty;
-    if field.value_enum {
-        quote! {
-            <#value_ty as getargs_derive::ValueEnum>::from_value(#value).ok_or(
-                getargs_derive::Error::InvalidValue {
-                    name: #error_name,
-                    value: #value,
-                },
-            )?
-        }
-    } else if field.is_str {
-        value
-    } else {
-        quote! {
-            #value.parse().map_err(|_| getargs_derive::Error::InvalidValue {
-                name: #error_name,
-                value: #value,
-            })?
-        }
-    }
-}
-
 fn fallback(field: &FieldModel) -> TokenStream {
     let error_name = field.error_name();
     match (&field.default, &field.kind) {
-        (Some(DefaultValue::Literal(literal)), _) if field.value_enum => {
-            parse_value(field, quote! { #literal })
+        (Some(DefaultValue::Literal(literal)), _) => {
+            convert(field, quote! { #literal }, &error_name)
         }
-        (Some(DefaultValue::Literal(literal)), _) if field.is_str => quote! { #literal },
-        (Some(DefaultValue::Literal(literal)), _) => quote! {
-            core::str::FromStr::from_str(#literal).map_err(|_| getargs_derive::Error::InvalidValue {
-                name: #error_name,
-                value: #literal,
-            })?
-        },
         (Some(DefaultValue::Expr(expr)), _) => quote! { #expr },
         (None, FieldKind::Flag(FlagAction::SetTrue)) => quote! { false },
         (None, FieldKind::Flag(FlagAction::SetFalse)) => quote! { true },
@@ -108,7 +78,7 @@ impl FieldTokens {
             FieldKind::Option => {
                 let pattern = option_pattern(field);
                 let error_name = field.error_name();
-                let parsed = parse_value(field, quote! { value });
+                let parsed = convert(field, quote! { value }, &error_name);
                 self.option_match_arms.push(quote! {
                     #pattern => {
                         let value = options
@@ -120,7 +90,7 @@ impl FieldTokens {
             }
             FieldKind::Positional => {
                 let index = self.positional_match_arms.len();
-                let parsed = parse_value(field, quote! { value });
+                let parsed = convert(field, quote! { value }, &field.error_name());
                 self.positional_match_arms.push(quote! {
                     #index => {
                         #value_ident = core::option::Option::Some(#parsed);

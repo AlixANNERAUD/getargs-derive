@@ -33,6 +33,10 @@ pub mod positionals {}
 pub mod relations {}
 
 #[doc = include_str!("../docs/rustdoc-links.md")]
+#[doc = include_str!("../docs/validation.md")]
+pub mod validation {}
+
+#[doc = include_str!("../docs/rustdoc-links.md")]
 #[doc = include_str!("../docs/help.md")]
 pub mod help {}
 

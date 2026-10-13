@@ -8,7 +8,7 @@ mod types;
 mod validate;
 
 pub(crate) use container::{ContainerModel, Version};
-pub(crate) use field::{DefaultValue, FieldKind, FieldModel, FlagAction};
+pub(crate) use field::{DefaultValue, FieldKind, FieldModel, FlagAction, ValueParser};
 pub(crate) use relations::resolve_groups;
 
 use errors::Errors;

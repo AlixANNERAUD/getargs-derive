@@ -56,6 +56,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 - [Environment Variables][guide-env]: `env` fallbacks, `parse_with_env` and the `std` feature.
 - [Positional and Optional Arguments][guide-positionals]: positional arguments and `Option<T>` fields.
 - [Argument Relations][guide-relations]: `conflicts_with`, `requires`, `required_unless_present` and argument groups.
+- [Value Validation][guide-validation]: `value_parser` functions and ranges, and `possible_values`.
 - [Generated Help][guide-help]: the `HELP` constant, `-h`/`--help` and `disable_help_flag`.
 - [Version Flag][guide-version]: `#[command(version)]`, `-V`/`--version` and the `VERSION`/`VERSION_TEXT` constants.
 - [Error Handling][guide-errors]: the `Error` enum, its Clap-style messages and "did you mean" suggestions.
@@ -80,6 +81,7 @@ Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
 [guide-env]: docs/env.md
 [guide-positionals]: docs/positionals.md
 [guide-relations]: docs/relations.md
+[guide-validation]: docs/validation.md
 [guide-help]: docs/help.md
 [guide-version]: docs/version.md
 [guide-errors]: docs/errors.md
