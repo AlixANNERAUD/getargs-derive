@@ -1,3 +1,4 @@
+mod group;
 mod help;
 mod text;
 mod version;
@@ -5,11 +6,13 @@ mod version;
 use super::attr::{Key, dispatch};
 use super::doc::short_doc;
 use super::errors::Errors;
+pub(crate) use group::GroupDecl;
 use syn::{DeriveInput, Meta};
 
 const COMMAND_KEYS: &[Key<RawContainer>] = &[
     Key::new("about", text::about),
     Key::new("disable_help_flag", help::disable_help_flag),
+    Key::new("group", group::group),
     Key::new("name", text::name),
     Key::new("version", version::version),
 ];
@@ -19,6 +22,7 @@ pub(crate) struct ContainerModel {
     pub(crate) about: Option<String>,
     pub(crate) version: Option<Version>,
     pub(crate) disable_help_flag: bool,
+    pub(crate) groups: Vec<GroupDecl>,
 }
 
 pub(crate) enum Version {
@@ -32,6 +36,7 @@ struct RawContainer {
     about: Option<String>,
     version: Option<Version>,
     disable_help_flag: Option<()>,
+    groups: Vec<GroupDecl>,
 }
 
 pub(super) fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel> {
@@ -61,5 +66,6 @@ pub(super) fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel
         about: raw.about.or_else(|| short_doc(&input.attrs)),
         version: raw.version,
         disable_help_flag: raw.disable_help_flag.is_some(),
+        groups: raw.groups,
     })
 }

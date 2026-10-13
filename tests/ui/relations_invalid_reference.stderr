@@ -1,0 +1,17 @@
+error: `conflicts_with` references unknown argument `missing`; expected the name of a field of this struct
+ --> tests/ui/relations_invalid_reference.rs:5:34
+  |
+5 |     #[arg(long, conflicts_with = "missing")]
+  |                                  ^^^^^^^^^
+
+error: `requires` cannot reference the field `verbose` itself
+ --> tests/ui/relations_invalid_reference.rs:7:28
+  |
+7 |     #[arg(long, requires = "verbose")]
+  |                            ^^^^^^^^^
+
+error: duplicate `quiet` in `requires`
+ --> tests/ui/relations_invalid_reference.rs:9:48
+  |
+9 |     #[arg(long, requires = "quiet", requires = "quiet")]
+  |                                                ^^^^^^^

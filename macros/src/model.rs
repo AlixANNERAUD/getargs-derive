@@ -3,11 +3,13 @@ mod container;
 mod doc;
 mod errors;
 mod field;
+mod relations;
 mod types;
 mod validate;
 
 pub(crate) use container::{ContainerModel, Version};
 pub(crate) use field::{DefaultValue, FieldKind, FieldModel, FlagAction};
+pub(crate) use relations::resolve_groups;
 
 use errors::Errors;
 use syn::{Data, DeriveInput, Fields};
@@ -67,6 +69,12 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<(ContainerModel, Vec<Fie
         .as_ref()
         .is_some_and(|container| container.version.is_some());
     validate::validate_struct(&models, help_enabled, version_enabled, &mut errors);
+    let groups = container
+        .as_ref()
+        .map_or(&[][..], |container| container.groups.as_slice());
+    if models.len() == fields.len() {
+        relations::validate_relations(groups, &models, &mut errors);
+    }
     match container {
         Some(container) => errors.finish((container, models)),
         None => Err(errors.0.expect("container errors are recorded")),

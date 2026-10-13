@@ -1,4 +1,4 @@
-error: unknown `command` attribute `long_about`; supported attributes are: `about`, `disable_help_flag`, `name`, `version`
+error: unknown `command` attribute `long_about`; supported attributes are: `about`, `disable_help_flag`, `group`, `name`, `version`
  --> tests/ui/unknown_command_key.rs:4:26
   |
 4 | #[command(name = "tool", long_about = "More")]

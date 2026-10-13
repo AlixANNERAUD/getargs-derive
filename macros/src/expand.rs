@@ -1,5 +1,6 @@
 mod field;
 mod help;
+mod relations;
 mod version;
 
 use crate::model::{ContainerModel, FieldModel};
@@ -53,6 +54,7 @@ pub(crate) fn expand(
     } = tokens;
 
     let long_names = long_names(container, fields);
+    let relation_checks = relations::relation_checks(container, fields);
     let help_items = help::help_items(container, fields);
     let help_handler = help::help_handler(container);
     let (version_items, version_handler) = version::version_tokens(container);
@@ -102,6 +104,8 @@ pub(crate) fn expand(
                         }
                     }
                 }
+
+                #relation_checks
 
                 #(#finalizers)*
 

@@ -57,6 +57,30 @@ pub enum Error<'a> {
     /// The string is the option name, e.g. `"--output <OUTPUT>"`.
     MissingOptionValue(&'static str),
 
+    /// Two arguments that cannot be used together were both given, because of `conflicts_with`
+    /// or because they belong to the same group.
+    ArgumentConflict {
+        /// The argument declaring the conflict (or the first member of the group), e.g.
+        /// `"--quiet"`.
+        name: &'static str,
+        /// The other argument, e.g. `"--verbose"`.
+        other: &'static str,
+    },
+
+    /// An argument was given without another argument it `requires`.
+    MissingRequiredArgument {
+        /// The missing argument, e.g. `"--output <OUTPUT>"`.
+        name: &'static str,
+        /// The given argument that requires it, e.g. `"--compress"`.
+        required_by: &'static str,
+    },
+
+    /// None of a set of arguments was given although one of them is required, because of
+    /// `required_unless_present` or a `required` group.
+    ///
+    /// The slice lists the arguments, e.g. `["--config <CONFIG>", "--stdin"]`.
+    MissingOneOf(&'static [&'static str]),
+
     /// The underlying `getargs` parser reported an error that this crate does not recognise.
     ///
     /// `getargs` may add error kinds in a compatible release; they are reported as this variant
@@ -131,6 +155,25 @@ impl core::fmt::Display for Error<'_> {
                     f,
                     "unexpected value for '{option}': it does not take a value"
                 )
+            }
+            Error::ArgumentConflict { name, other } => {
+                write!(f, "the argument '{name}' cannot be used with '{other}'")
+            }
+            Error::MissingRequiredArgument { name, required_by } => {
+                write!(
+                    f,
+                    "the following required argument was not provided: {name} (required by '{required_by}')"
+                )
+            }
+            Error::MissingOneOf(names) => {
+                f.write_str("the following required arguments were not provided: <")?;
+                for (index, name) in names.iter().enumerate() {
+                    if index > 0 {
+                        f.write_str("|")?;
+                    }
+                    f.write_str(name)?;
+                }
+                f.write_str(">")
             }
             Error::InvalidArguments => f.write_str("the arguments could not be parsed"),
             Error::MissingOptionValue(name) => {

@@ -1,0 +1,11 @@
+error: `quiet` cannot require `verbose` because the two arguments conflict with each other
+ --> tests/ui/relations_contradiction.rs:5:56
+  |
+5 |     #[arg(long, conflicts_with = "verbose", requires = "verbose")]
+  |                                                        ^^^^^^^^^
+
+error: `slow` cannot require `fast` because the two arguments conflict with each other
+  --> tests/ui/relations_contradiction.rs:11:44
+   |
+11 |     #[arg(long, group = "mode", requires = "fast")]
+   |                                            ^^^^^^
