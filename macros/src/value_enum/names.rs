@@ -1,4 +1,4 @@
-pub(super) fn to_kebab_case(name: &str) -> String {
+pub(crate) fn to_kebab_case(name: &str) -> String {
     let characters: Vec<char> = name.chars().collect();
     let mut output = String::new();
     for (index, &character) in characters.iter().enumerate() {

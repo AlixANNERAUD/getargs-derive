@@ -1,41 +1,12 @@
 use super::{RawField, validate_long, validate_short};
-use crate::model::attr::{parse_string, require_value};
+use crate::model::attr::{expected, parse_list, parse_string, require_value};
 use proc_macro2::Span;
-use syn::{Expr, Lit, meta::ParseNestedMeta, spanned::Spanned};
+use syn::{Lit, meta::ParseNestedMeta};
 
 pub(crate) struct Alias<T> {
     pub(crate) name: T,
     pub(crate) visible: bool,
     pub(crate) span: Span,
-}
-
-fn expected(key: &str, kind: &str, example: &str) -> String {
-    match key.ends_with("aliases") {
-        true => format!("`{key}` expects an array of {kind} literals, e.g. `{example}`"),
-        false => format!("`{key}` expects a {kind} literal, e.g. `{example}`"),
-    }
-}
-
-fn parse_list(
-    meta: &ParseNestedMeta,
-    key: &str,
-    kind: &str,
-    example: &str,
-) -> syn::Result<Vec<Lit>> {
-    let array = match require_value(meta, key, example)?.parse::<Expr>()? {
-        Expr::Array(array) => array,
-        other => {
-            return Err(syn::Error::new(other.span(), expected(key, kind, example)));
-        }
-    };
-    array
-        .elems
-        .into_iter()
-        .map(|element| match element {
-            Expr::Lit(literal) => Ok(literal.lit),
-            other => Err(syn::Error::new(other.span(), expected(key, kind, example))),
-        })
-        .collect()
 }
 
 fn to_long_alias(

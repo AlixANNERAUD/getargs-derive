@@ -12,6 +12,7 @@ option `-5`. These attributes change that, as a Clap-inspired subset:
 | `#[arg(allow_negative_numbers = true)]`  | options taking a value, positionals | Negative numbers such as `-5`, `-1.5` or `-2e3` are accepted as values instead of options. |
 | `#[command(allow_negative_numbers)]`     | the struct                          | Same as `allow_negative_numbers` on every option taking a value and every positional.    |
 | `#[arg(last = true)]`                    | the final positional                | The positional is only filled by an argument given after `--`.                           |
+| `#[arg(global = true)]`                  | options and flags                   | The argument is also accepted after the subcommands of the struct. See [Global Arguments](#global-arguments). |
 
 Each key can be written alone (`#[arg(last)]`) or with a boolean literal (`#[arg(last = true)]`, `#[arg(last = false)]`).
 
@@ -95,8 +96,39 @@ assert!(Run::HELP.starts_with("Usage: run [OPTIONS] [PROGRAM] [-- <ARGUMENT>]\n"
 
 ## Global Arguments
 
-Clap's `global = true` propagates an argument to subcommands. Subcommands are not supported yet, so `global` is not supported either and is
-rejected as an unknown `#[arg(...)]` key.
+As in Clap, `#[arg(global = true)]` on an option or a flag of a struct with a `#[command(subcommand)]` field makes it accepted after the
+subcommand too, at any depth: `vcs commit --quiet` sets the `quiet` field of the top-level struct. The value is always stored in the
+struct declaring the argument, wherever it was given; subcommands do not get a copy of it. An argument after a subcommand is first offered
+to the subcommand, then to the global arguments of its parents, closest first, and a global argument sharing a name with an argument of a
+subcommand is rejected at compile time. Global arguments are listed in the help of every subcommand.
+
+`global` is written alone or with a boolean literal, like the other keys. It is accepted on any option or flag, flattened structs
+included, and has no effect in a struct without subcommands. Positional arguments cannot be global. See [Subcommands][guide-subcommands].
+
+```rust
+use getargs_derive::{Error, GetArgs, Subcommand};
+
+#[derive(Debug, PartialEq, Subcommand)]
+enum Commands {
+    Status,
+}
+
+#[derive(Debug, GetArgs)]
+#[command(name = "vcs")]
+struct Cli {
+    #[arg(short, long, global = true)]
+    quiet: bool,
+    #[command(subcommand)]
+    command: Commands,
+}
+
+# fn main() -> Result<(), Error<'static>> {
+let cli = Cli::from_args(["status", "-q"].into_iter())?;
+assert!(cli.quiet);
+assert_eq!(cli.command, Commands::Status);
+# Ok(())
+# }
+```
 
 ## Limitations
 
@@ -121,14 +153,16 @@ This shapes what can be supported:
 
 The macro reports a compile error, pointing at the offending attribute, for:
 
-- `allow_hyphen_values`, `allow_negative_numbers` or `last` given a value that is not a boolean literal, or given more than once;
+- `allow_hyphen_values`, `allow_negative_numbers`, `last` or `global` given a value that is not a boolean literal, or given more than once;
 - `allow_hyphen_values` on a flag or a positional argument;
 - `allow_negative_numbers` on a flag;
 - `last` on a named option or flag;
 - `last` on more than one positional, or on a positional that is not the final one;
-- `global`, which is not supported.
+- `global` on a positional argument;
+- a `global` argument whose short or long name is also used by a subcommand.
 
 [guide-collections]: collections.md
 [guide-env]: env.md
 [guide-errors]: errors.md
 [guide-parsing]: parsing.md
+[guide-subcommands]: subcommands.md

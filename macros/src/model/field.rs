@@ -41,6 +41,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("display_order", display::display_order),
     Key::new("env", env::env),
     Key::new("group", relations::group),
+    Key::new("global", parsing::global),
     Key::new("help", help::help),
     Key::new("help_heading", display::help_heading),
     Key::new("hide", display::hide),
@@ -74,9 +75,18 @@ pub(crate) struct FlattenModel {
     pub(crate) span: Span,
 }
 
+pub(crate) struct SubcommandModel {
+    pub(crate) ident: Ident,
+    pub(crate) name: String,
+    pub(crate) ty: Type,
+    pub(crate) optional: bool,
+    pub(crate) span: Span,
+}
+
 pub(crate) enum Member {
     Arg(Box<FieldModel>),
     Flatten(Box<FlattenModel>),
+    Subcommand(Box<SubcommandModel>),
 }
 
 pub(crate) enum FieldKind {
@@ -253,10 +263,51 @@ fn validate_long(key: &str, long: &str, span: Span) -> syn::Result<()> {
 }
 
 pub(super) fn build_member(field: &Field) -> syn::Result<Member> {
-    match command::parse_command(field)?.flatten {
-        Some(span) => build_flatten(field, span).map(|model| Member::Flatten(Box::new(model))),
-        None => build_field(field).map(|model| Member::Arg(Box::new(model))),
+    let command = command::parse_command(field)?;
+    match (command.flatten, command.subcommand) {
+        (Some(span), _) => build_flatten(field, span).map(|model| Member::Flatten(Box::new(model))),
+        (None, Some(span)) => {
+            build_subcommand(field, span).map(|model| Member::Subcommand(Box::new(model)))
+        }
+        (None, None) => build_field(field).map(|model| Member::Arg(Box::new(model))),
     }
+}
+
+fn build_subcommand(field: &Field, span: Span) -> syn::Result<SubcommandModel> {
+    let Some(ident) = field.ident.clone() else {
+        return Err(syn::Error::new_spanned(
+            field,
+            "GetArgs requires a struct with named fields",
+        ));
+    };
+    let mut errors = Errors::default();
+
+    for attr in &field.attrs {
+        if attr.path().is_ident("arg") {
+            errors.push(syn::Error::new_spanned(
+                attr,
+                "`#[arg(...)]` cannot be combined with `#[command(subcommand)]`; put the attributes on the fields of the subcommand variants",
+            ));
+        }
+    }
+
+    let inner = option_inner_type(&field.ty);
+    if let Some(inner) = inner
+        && option_inner_type(inner).is_some()
+    {
+        errors.push(syn::Error::new_spanned(
+            &field.ty,
+            "`Option<Option<T>>` subcommand fields are not supported; use `Option<T>`",
+        ));
+    }
+
+    errors.finish(SubcommandModel {
+        name: ident.unraw().to_string(),
+        ident,
+        ty: inner.unwrap_or(&field.ty).clone(),
+        optional: inner.is_some(),
+        span,
+    })
 }
 
 fn build_flatten(field: &Field, span: Span) -> syn::Result<FlattenModel> {

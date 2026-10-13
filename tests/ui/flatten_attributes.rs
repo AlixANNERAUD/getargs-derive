@@ -13,7 +13,7 @@ struct Cli {
     inner: Inner,
     #[command(flatten = true)]
     other: Inner,
-    #[command(subcommand)]
+    #[command(next_help_heading = "Other")]
     third: Inner,
 }
 

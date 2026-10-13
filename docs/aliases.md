@@ -60,7 +60,8 @@ Options:
 - **Suggestions**: long aliases, hidden or visible, are candidates for the "did you mean" suggestion of an unknown long option, as in Clap. See [Error Handling][guide-errors].
 - **Reserved names**: `-h`/`--help` (unless `#[command(disable_help_flag)]`) and `-V`/`--version` (when `#[command(version)]` is set) cannot be used as aliases.
 
-This remains a Clap-inspired subset: aliases are only supported on named options, and subcommand aliases do not exist since subcommands are not supported.
+This remains a Clap-inspired subset: aliases are only supported on named options here. Subcommands have their own `alias`,
+`aliases`, `visible_alias` and `visible_aliases` keys; see [Subcommands][guide-subcommands].
 
 ## Compile-Time Diagnostics
 
@@ -73,3 +74,4 @@ The macro reports a compile error, pointing at the offending attribute or field,
 - an alias key without a value, a non-string long alias, a non-character short alias, and a plural key whose value is not an array.
 
 [guide-errors]: errors.md
+[guide-subcommands]: subcommands.md

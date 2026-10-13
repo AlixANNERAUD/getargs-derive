@@ -1,0 +1,29 @@
+error: Subcommand can only be derived for enums; derive `GetArgs` for structs
+ --> tests/ui/subcommand_derive.rs:4:1
+  |
+4 | struct NotAnEnum {
+  | ^^^^^^
+
+error: Subcommand requires at least one variant
+ --> tests/ui/subcommand_derive.rs:9:6
+  |
+9 | enum Empty {}
+  |      ^^^^^
+
+error: Subcommand cannot be derived for enums with type or const parameters
+  --> tests/ui/subcommand_derive.rs:12:13
+   |
+12 | enum Generic<T> {
+   |             ^^^
+
+error: attributes are not supported on a `Subcommand` enum; put `#[command(...)]` on its variants
+  --> tests/ui/subcommand_derive.rs:17:1
+   |
+17 | #[command(name = "tool")]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: subcommand variant `Pair` must be a unit variant, a variant with named fields, or a newtype variant wrapping a struct deriving `GetArgs`
+  --> tests/ui/subcommand_derive.rs:24:9
+   |
+24 |     Pair(u32, u32),
+   |         ^^^^^^^^^^

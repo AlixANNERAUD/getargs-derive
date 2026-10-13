@@ -2,15 +2,17 @@
 
 Like [`clap_complete`](https://docs.rs/clap_complete) and [`clap_mangen`](https://docs.rs/clap_mangen), this crate can generate
 bash, zsh and fish completion scripts and a man page from a `GetArgs` struct. This is a **Clap-inspired subset**:
-the scripts complete option names and possible values, but have no dynamic completion, value hints or subcommand completion.
+the scripts complete option names, possible values and [subcommands][guide-subcommands], but have no dynamic completion or value hints.
 
 ## Command Metadata
 
 `#[derive(GetArgs)]` implements the [`Command`](crate::Command) trait, whose `COMMAND` constant is a [`CommandInfo`](crate::CommandInfo)
 describing the command: its name, `about` and `long_about` texts, version and arguments, flattened structs included.
 Each argument is an [`ArgInfo`](crate::ArgInfo) with its kind, short and long names, visible and hidden aliases, value name, help,
-possible values, environment variable and whether it is hidden, required or repeatable. The generated `--help` and `--version` flags are
-listed last. A `commands` list is reserved for subcommands and is always empty for now.
+possible values, environment variable and whether it is hidden, required, repeatable or `global`. The generated `--help` and `--version` flags are
+listed last. `commands` lists the subcommands of a struct with a `#[command(subcommand)]` field, recursively, each a `CommandInfo` with
+its own arguments (its `--help` flag included), aliases, `hidden` flag and `subcommand_required`; the `global` arguments of a parent are
+not repeated in the arguments of its subcommands.
 
 The metadata is made of `&'static` data built at compile time. It does not need the `std` feature and does not allocate:
 
@@ -86,9 +88,13 @@ As in Clap:
 - the values of `possible_values` and of `value_enum` arguments are offered as completions, for options and positional arguments;
 - other values fall back to the shell's default completion, usually file names;
 - `Count` flags and [repeated options][guide-collections] can be completed again after being given once;
-- a positional collection keeps completing its values for every remaining positional argument, and is shown as `<NAME>...` or `[NAME]...` in the man page.
+- a positional collection keeps completing its values for every remaining positional argument, and is shown as `<NAME>...` or `[NAME]...` in the man page;
+- subcommand names and visible aliases are completed where a subcommand is expected, hidden subcommands and hidden aliases are left out,
+  and after a subcommand the scripts complete that subcommand's arguments followed by the `global` arguments of its parents.
 
-The man page has the `NAME`, `SYNOPSIS`, `DESCRIPTION`, `ARGUMENTS`, `OPTIONS` and `VERSION` sections. Arguments use their long help,
+The man page has the `NAME`, `SYNOPSIS`, `DESCRIPTION`, `ARGUMENTS`, `OPTIONS`, `SUBCOMMANDS` and `VERSION` sections. `SUBCOMMANDS` lists
+every visible subcommand, nested ones included, with its full path, description, visible aliases and synopsis; there is no separate page
+per subcommand. Arguments use their long help,
 and list their environment variable and possible values. Default values, help headings and `before_help`/`after_help` are not rendered.
 
 ## Compile-Time Diagnostics
@@ -96,3 +102,4 @@ and list their environment variable and possible values. Default values, help he
 The metadata and the generators add no compile-time diagnostics: every `GetArgs` struct can be described and rendered.
 
 [guide-collections]: collections.md
+[guide-subcommands]: subcommands.md

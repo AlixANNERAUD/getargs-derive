@@ -10,8 +10,8 @@ error: `flatten` does not take a value
 14 |     #[command(flatten = true)]
    |               ^^^^^^^
 
-error: unknown `command` attribute `subcommand`; supported attributes are: `flatten`
+error: unknown `command` attribute `next_help_heading`; supported attributes are: `flatten`, `subcommand`
   --> tests/ui/flatten_attributes.rs:16:15
    |
-16 |     #[command(subcommand)]
-   |               ^^^^^^^^^^
+16 |     #[command(next_help_heading = "Other")]
+   |               ^^^^^^^^^^^^^^^^^

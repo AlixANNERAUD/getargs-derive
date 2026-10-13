@@ -1,0 +1,29 @@
+error: subcommand name `build` is already used by variant `Build`
+ --> tests/ui/subcommand_names.rs:6:23
+  |
+6 |     #[command(alias = "build")]
+  |                       ^^^^^^^
+
+error: subcommand name `test` is already used by variant `Test`
+ --> tests/ui/subcommand_names.rs:9:5
+  |
+9 |     Check,
+  |     ^^^^^
+
+error: `name` cannot start with `-`, because it would be read as an option
+  --> tests/ui/subcommand_names.rs:15:5
+   |
+15 |     Run,
+   |     ^^^
+
+error: `visible_alias` cannot contain whitespace
+  --> tests/ui/subcommand_names.rs:16:31
+   |
+16 |     #[command(visible_alias = "two words")]
+   |                               ^^^^^^^^^^^
+
+error: `aliases` cannot be empty
+  --> tests/ui/subcommand_names.rs:18:26
+   |
+18 |     #[command(aliases = ["", "ok"])]
+   |                          ^^

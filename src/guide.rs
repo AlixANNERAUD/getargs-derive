@@ -49,6 +49,10 @@ pub mod parsing {}
 pub mod flatten {}
 
 #[doc = include_str!("../docs/rustdoc-links.md")]
+#[doc = include_str!("../docs/subcommands.md")]
+pub mod subcommands {}
+
+#[doc = include_str!("../docs/rustdoc-links.md")]
 #[doc = include_str!("../docs/help.md")]
 pub mod help {}
 

@@ -1,7 +1,7 @@
-use super::field::{FieldTokens, args_trait};
-use super::flatten::{Merged, static_args};
+use super::field::{FieldTokens, args_trait, subcommand_trait};
+use super::flatten::{Merged, static_args, static_commands};
 use super::relations::relation_checks;
-use crate::help::{Mode, entry_description, entry_label, usage_label};
+use crate::help::{Mode, command_name, entry_description, entry_label, usage_label};
 use crate::model::{FieldKind, FieldModel, Model, Slot};
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -16,6 +16,7 @@ fn help_entry(field: &FieldModel) -> TokenStream {
         String::new()
     };
     let hidden = field.hide;
+    let global = field.parsing.global;
     let heading = field.help_heading.as_deref().unwrap_or_default();
     let ordered = field.display_order.is_some();
     let order = field.display_order.unwrap_or_default();
@@ -27,6 +28,7 @@ fn help_entry(field: &FieldModel) -> TokenStream {
             usage: #usage,
             positional: #positional,
             hidden: #hidden,
+            global: #global,
             heading: #heading,
             order: #order,
             ordered: #ordered,
@@ -105,6 +107,10 @@ fn constants(model: &Model) -> TokenStream {
         let args = args_trait(&flatten.ty);
         env = quote! { <#env as getargs_derive::__private::EnvFlag>::Or<#args::Env> };
     }
+    if let Some(subcommand) = &model.subcommand {
+        let commands = subcommand_trait(&subcommand.ty);
+        env = quote! { <#env as getargs_derive::__private::EnvFlag>::Or<#commands::Env> };
+    }
     let has_long_help = any_flattened(
         model,
         model
@@ -113,6 +119,7 @@ fn constants(model: &Model) -> TokenStream {
             .any(|field| !field.hide && field.long_help.is_some()),
         "HAS_LONG_HELP",
     );
+    let command = command_help(model);
 
     quote! {
         const ENTRIES: &'static [getargs_derive::__private::HelpEntry] = #entries;
@@ -122,6 +129,51 @@ fn constants(model: &Model) -> TokenStream {
         const LAST: bool = #last;
         type Env = #env;
         const HAS_LONG_HELP: bool = #has_long_help;
+        #command
+    }
+}
+
+fn command_help(model: &Model) -> TokenStream {
+    let container = &model.container;
+    let name = command_name(container);
+    let text = |text: &Option<String>| text.clone().unwrap_or_default();
+    let before_help = text(&container.before_help);
+    let about = text(&container.about);
+    let long_about = text(&container.long_about);
+    let after_help = text(&container.after_help);
+    let term_width = container.max_term_width.unwrap_or_default();
+    let help_flag = !container.disable_help_flag;
+    let version = container.version.is_some();
+    let (commands, infos, required) = match &model.subcommand {
+        Some(subcommand) => {
+            let commands = static_commands(&subcommand.ty);
+            let required = !subcommand.optional;
+            (
+                quote! { #commands::COMMANDS },
+                quote! { #commands::INFOS },
+                required,
+            )
+        }
+        None => (quote! { &[] }, quote! { &[] }, false),
+    };
+    quote! {
+        const COMMAND: getargs_derive::__private::CommandHelp = getargs_derive::__private::CommandHelp {
+            name: #name,
+            before_help: #before_help,
+            about: #about,
+            long_about: #long_about,
+            after_help: #after_help,
+            term_width: #term_width,
+            help_flag: #help_flag,
+            version: #version,
+            entries: Self::ENTRIES,
+            has_long_help: Self::HAS_LONG_HELP,
+            shorts: Self::SHORTS,
+            longs: Self::LONGS,
+            commands: #commands,
+            subcommand_required: #required,
+            infos: #infos,
+        };
     }
 }
 
@@ -150,6 +202,9 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
     for slot in model.slots() {
         tokens.push(&slot, model.container.allow_negative_numbers);
     }
+    if let Some(subcommand) = &model.subcommand {
+        tokens.push_subcommand(subcommand);
+    }
     let FieldTokens {
         state_types,
         initializers,
@@ -160,6 +215,9 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
         filled,
         finalizers,
         field_builds,
+        global_arms,
+        global_steps,
+        subcommand: subcommand_index,
     } = tokens;
 
     let option_match = if option_match_arms.is_empty() {
@@ -171,6 +229,61 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
                 _ => {}
             }
         }
+    };
+    let global_match = if global_arms.is_empty() {
+        quote! {}
+    } else {
+        quote! {
+            match __argument {
+                #(#global_arms)*
+                _ => {}
+            }
+        }
+    };
+    let (subcommand_step, subcommand_fallback) = match (&model.subcommand, subcommand_index) {
+        (Some(subcommand), Some(index)) => {
+            let commands = subcommand_trait(&subcommand.ty);
+            (
+                quote! {
+                    if let getargs::Arg::Positional(__name) = __argument {
+                        if !__options.opts_ended() {
+                            let __found = {
+                                let mut __forward = |
+                                    __argument: getargs::Arg<&#lifetime str>,
+                                    __options: &mut getargs::Options<&#lifetime str, __I>,
+                                | -> core::result::Result<bool, getargs_derive::Error<#lifetime>> {
+                                    if <Self as getargs_derive::__private::Args<#lifetime>>::try_global(
+                                        &mut *__state,
+                                        __argument,
+                                        __options,
+                                        __context,
+                                    )? {
+                                        return core::result::Result::Ok(true);
+                                    }
+                                    __globals(__argument, __options)
+                                };
+                                #commands::try_command(__name, __options, __context, &mut __forward)?
+                            };
+                            if let core::option::Option::Some(__found) = __found {
+                                __state.#index = core::option::Option::Some(__found);
+                                return core::result::Result::Ok(true);
+                            }
+                        }
+                    }
+                },
+                quote! {
+                    if let getargs::Arg::Positional(__name) = __argument {
+                        if !__options.opts_ended() {
+                            return Err(getargs_derive::Error::UnknownSubcommand {
+                                name: __name,
+                                suggestion: getargs_derive::__suggest(__name, &[#commands::NAMES]),
+                            });
+                        }
+                    }
+                },
+            )
+        }
+        _ => (quote! {}, quote! {}),
     };
     let (init, destructure) = if value_idents.is_empty() {
         (quote! {}, quote! { let _ = __state; })
@@ -221,11 +334,25 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
                 __argument: getargs::Arg<&#lifetime str>,
                 __options: &mut getargs::Options<&#lifetime str, __I>,
                 __context: getargs_derive::__private::Context<#lifetime, '_>,
+                __globals: &mut getargs_derive::__private::Globals<'_, #lifetime, __I>,
             ) -> core::result::Result<bool, getargs_derive::Error<#lifetime>> {
                 #last
                 #(#prologue)*
                 #option_match
+                #subcommand_step
                 #(#steps)*
+                #subcommand_fallback
+                core::result::Result::Ok(false)
+            }
+
+            fn try_global<__I: Iterator<Item = &#lifetime str>>(
+                __state: &mut Self::State,
+                __argument: getargs::Arg<&#lifetime str>,
+                __options: &mut getargs::Options<&#lifetime str, __I>,
+                __context: getargs_derive::__private::Context<#lifetime, '_>,
+            ) -> core::result::Result<bool, getargs_derive::Error<#lifetime>> {
+                #global_match
+                #(#global_steps)*
                 core::result::Result::Ok(false)
             }
 

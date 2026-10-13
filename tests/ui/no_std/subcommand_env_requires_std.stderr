@@ -1,0 +1,16 @@
+error[E0277]: a flattened struct or a subcommand reads environment variables, which requires the `std` feature of `getargs-derive`
+  --> tests/ui/no_std/subcommand_env_requires_std.rs:19:28
+   |
+19 |     let _ = Cli::from_args(["serve"].into_iter());
+   |             -------------- ^^^^^^^^^^^^^^^^^^^^^ `parse` and `from_args` read the process environment
+   |             |
+   |             required by a bound introduced by this call
+   |
+   = help: the trait `getargs_derive::__private::EnvSupport<getargs_derive::__private::UsesEnv>` is not implemented for `std::array::IntoIter<&str, 1>`
+   = note: enable the `std` feature of `getargs-derive`, or call `parse_with_env` or `from_args_with_env` with a lookup function
+note: required by a bound in `Cli::from_args`
+  --> tests/ui/no_std/subcommand_env_requires_std.rs:11:10
+   |
+11 | #[derive(GetArgs)]
+   |          ^^^^^^^ required by this bound in `Cli::from_args`
+   = note: this error originates in the derive macro `GetArgs` (in Nightly builds, run with -Z macro-backtrace for more info)

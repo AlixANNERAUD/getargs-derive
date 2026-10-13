@@ -1,5 +1,5 @@
 use quote::ToTokens;
-use syn::{Ident, Lit, LitStr, Token, meta::ParseNestedMeta};
+use syn::{Expr, Ident, Lit, LitStr, Token, meta::ParseNestedMeta, spanned::Spanned};
 
 pub(crate) type Parser<T> = fn(&ParseNestedMeta, &mut T) -> syn::Result<()>;
 
@@ -73,6 +73,35 @@ pub(crate) fn require_value<'a>(
         return Err(meta.error(format!("`{key}` requires a value, e.g. `{example}`")));
     }
     meta.value()
+}
+
+pub(crate) fn expected(key: &str, kind: &str, example: &str) -> String {
+    match key.ends_with("aliases") {
+        true => format!("`{key}` expects an array of {kind} literals, e.g. `{example}`"),
+        false => format!("`{key}` expects a {kind} literal, e.g. `{example}`"),
+    }
+}
+
+pub(crate) fn parse_list(
+    meta: &ParseNestedMeta,
+    key: &str,
+    kind: &str,
+    example: &str,
+) -> syn::Result<Vec<Lit>> {
+    let array = match require_value(meta, key, example)?.parse::<Expr>()? {
+        Expr::Array(array) => array,
+        other => {
+            return Err(syn::Error::new(other.span(), expected(key, kind, example)));
+        }
+    };
+    array
+        .elems
+        .into_iter()
+        .map(|element| match element {
+            Expr::Lit(literal) => Ok(literal.lit),
+            other => Err(syn::Error::new(other.span(), expected(key, kind, example))),
+        })
+        .collect()
 }
 
 pub(crate) fn parse_string(

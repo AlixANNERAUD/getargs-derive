@@ -95,16 +95,92 @@ pub fn render_man_page(command: &CommandInfo) -> String {
     man::render(command)
 }
 
-fn visible(command: &CommandInfo) -> impl Iterator<Item = &ArgInfo> {
-    command.args.iter().filter(|arg| !arg.hidden)
+struct Node<'c> {
+    path: Vec<&'c CommandInfo>,
+    command: &'c CommandInfo,
+    args: Vec<&'c ArgInfo>,
 }
 
-fn options(command: &CommandInfo) -> impl Iterator<Item = &ArgInfo> {
-    visible(command).filter(|arg| !arg.is_positional())
+impl<'c> Node<'c> {
+    fn root(command: &'c CommandInfo) -> Self {
+        Node {
+            path: std::vec![command],
+            command,
+            args: command.args.iter().collect(),
+        }
+    }
+
+    fn id(&self) -> String {
+        let names: Vec<String> = self
+            .path
+            .iter()
+            .map(|command| identifier(command.name))
+            .collect();
+        names.join("__")
+    }
 }
 
-fn positionals(command: &CommandInfo) -> impl Iterator<Item = &ArgInfo> {
-    visible(command).filter(|arg| arg.is_positional())
+fn tree(command: &CommandInfo) -> Vec<Node<'_>> {
+    fn visit<'c>(node: Node<'c>, nodes: &mut Vec<Node<'c>>) {
+        let globals: Vec<&ArgInfo> = node.args.iter().copied().filter(|arg| arg.global).collect();
+        let children: Vec<Node<'c>> = node
+            .command
+            .commands
+            .iter()
+            .map(|child| {
+                let mut path = node.path.clone();
+                path.push(child);
+                let mut args: Vec<&ArgInfo> = child.args.iter().collect();
+                let inherited: Vec<&ArgInfo> = globals
+                    .iter()
+                    .copied()
+                    .filter(|global| !args.iter().any(|arg| arg.id == global.id))
+                    .collect();
+                args.extend(inherited);
+                Node {
+                    path,
+                    command: child,
+                    args,
+                }
+            })
+            .collect();
+        nodes.push(node);
+        for child in children {
+            visit(child, nodes);
+        }
+    }
+    let mut nodes = Vec::new();
+    visit(Node::root(command), &mut nodes);
+    nodes
+}
+
+fn visible<'n>(node: &'n Node<'_>) -> impl Iterator<Item = &'n ArgInfo> {
+    node.args.iter().copied().filter(|arg| !arg.hidden)
+}
+
+fn options<'n>(node: &'n Node<'_>) -> impl Iterator<Item = &'n ArgInfo> {
+    visible(node).filter(|arg| !arg.is_positional())
+}
+
+fn positionals<'n>(node: &'n Node<'_>) -> impl Iterator<Item = &'n ArgInfo> {
+    visible(node).filter(|arg| arg.is_positional())
+}
+
+fn subcommands(command: &CommandInfo) -> impl Iterator<Item = &CommandInfo> {
+    command.commands.iter().filter(|command| !command.hidden)
+}
+
+fn command_names(command: &CommandInfo) -> Vec<&'static str> {
+    core::iter::once(command.name)
+        .chain(command.visible_aliases.iter().copied())
+        .collect()
+}
+
+fn all_command_names(command: &CommandInfo) -> Vec<&'static str> {
+    core::iter::once(command.name)
+        .chain(command.visible_aliases.iter().copied())
+        .chain(command.aliases.iter().copied())
+        .collect()
 }
 
 fn shorts(arg: &ArgInfo) -> Vec<char> {

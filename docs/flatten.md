@@ -79,8 +79,9 @@ Flattened structs can themselves flatten other structs, and may borrow from the 
 
 ## Differences From Clap
 
-This is a Clap-inspired subset. Flattening `Option<T>` fields, field-level `#[command(...)]` keys other than `flatten` (such as
-`next_help_heading`), `#[group]` on flattened structs, and flattening in structs with type or const parameters are not supported.
+This is a Clap-inspired subset. Flattening `Option<T>` fields, field-level `#[command(...)]` keys other than `flatten` and `subcommand`
+(such as `next_help_heading`), `#[group]` on flattened structs, flattening a struct with a `#[command(subcommand)]` field, and flattening
+in structs with type or const parameters are not supported.
 Flattened arguments do not get their own help heading. A short option of the parent is matched before the argument is offered to its
 flattened structs, so it takes precedence over a negative number expected by a flattened positional, while within one struct a negative
 number takes precedence over a short option with the same name.
@@ -90,7 +91,9 @@ number takes precedence over a short option with the same name.
 The macro reports a compile error for:
 
 - `#[command(flatten)]` on an `Option<T>` field;
-- `#[command(flatten)]` with a value, an unknown field-level `#[command(...)]` key, or `flatten` repeated;
+- `#[command(flatten)]` with a value, an unknown field-level `#[command(...)]` key, `flatten` repeated, or `flatten` combined with
+  `subcommand`;
+- a flattened struct that has a `#[command(subcommand)]` field;
 - `#[arg(...)]` on a flattened field;
 - a flattened field whose type does not derive `GetArgs`;
 - `#[command(flatten)]` in a struct with type or const parameters;

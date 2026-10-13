@@ -54,4 +54,4 @@ pub use value_enum::{
     help_str as __help_str, value_name as __value_name,
 };
 
-pub use getargs_derive_macros::{GetArgs, ValueEnum};
+pub use getargs_derive_macros::{GetArgs, Subcommand, ValueEnum};

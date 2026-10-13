@@ -34,6 +34,8 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 `short` and `long` can be combined: `#[arg(short, long)]` accepts both `-v` and `--verbose`.
 
 A field marked `#[command(flatten)]` instead takes its arguments from another struct deriving `GetArgs`; see [Flattened Structs][guide-flatten].
+A field marked `#[command(subcommand)]` receives a subcommand from an enum deriving `Subcommand`, and `#[arg(global = true)]` makes an
+option or a flag also accepted after the subcommands; see [Subcommands][guide-subcommands].
 
 ## Argument Resolution
 
@@ -134,6 +136,7 @@ The macro reports a compile error, pointing at the offending attribute or field,
 [guide-help]: help.md
 [guide-parsing]: parsing.md
 [guide-positionals]: positionals.md
+[guide-subcommands]: subcommands.md
 [guide-validation]: validation.md
 [guide-value-enum]: value_enum.md
 [guide-version]: version.md

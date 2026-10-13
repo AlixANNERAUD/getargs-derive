@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use getargs_derive::completions::{Shell, generate, man_page, render_man_page};
-use getargs_derive::{Command, GetArgs, ValueEnum, Values};
+use getargs_derive::{Command, GetArgs, Subcommand, ValueEnum, Values};
 use std::path::PathBuf;
 use std::process;
 
@@ -87,6 +87,66 @@ struct Compile<'a> {
     linker: Values<&'a str, 4>,
 }
 
+/// Show a remote.
+#[derive(GetArgs)]
+struct Show<'a> {
+    /// Remote to show.
+    name: Option<&'a str>,
+}
+
+#[derive(Subcommand)]
+enum Remote<'a> {
+    /// Add a remote.
+    Add {
+        /// Name of the remote.
+        name: &'a str,
+        /// Protocol to use.
+        #[arg(short, long, possible_values = ["https", "ssh"])]
+        protocol: Option<&'a str>,
+    },
+    /// Remove a remote.
+    #[command(visible_alias = "rm")]
+    Remove {
+        name: &'a str,
+    },
+    Show(Show<'a>),
+}
+
+#[derive(Subcommand)]
+enum Commands<'a> {
+    /// Commit changes.
+    #[command(alias = "ci")]
+    Commit {
+        /// Commit message.
+        #[arg(short, long)]
+        message: Values<&'a str, 4>,
+        /// When to use colors.
+        #[arg(long, value_enum)]
+        color: Option<Color>,
+    },
+    /// Manage remotes.
+    Remote {
+        #[command(subcommand)]
+        command: Remote<'a>,
+    },
+    #[command(hide)]
+    Debug,
+}
+
+/// A version control tool.
+#[derive(GetArgs)]
+#[command(name = "vcs", version = "2.0.0")]
+struct Vcs<'a> {
+    /// Print less output.
+    #[arg(short, long, global = true)]
+    quiet: bool,
+    /// Working directory.
+    #[arg(short = 'C', long)]
+    directory: Option<&'a str>,
+    #[command(subcommand)]
+    command: Commands<'a>,
+}
+
 #[derive(GetArgs)]
 #[command(name = "bare", disable_help_flag)]
 struct Bare<'a> {
@@ -137,6 +197,9 @@ fn bash() {
     let collections = completion::<Compile>(Shell::Bash);
     snapshot("cc.bash", &collections);
     syntax_check("bash", "-n", &collections);
+    let subcommands = completion::<Vcs>(Shell::Bash);
+    snapshot("vcs.bash", &subcommands);
+    syntax_check("bash", "-n", &subcommands);
     let bare = completion::<Bare>(Shell::Bash);
     snapshot("bare.bash", &bare);
     syntax_check("bash", "-n", &bare);
@@ -150,6 +213,9 @@ fn zsh() {
     let collections = completion::<Compile>(Shell::Zsh);
     snapshot("cc.zsh", &collections);
     syntax_check("zsh", "-n", &collections);
+    let subcommands = completion::<Vcs>(Shell::Zsh);
+    snapshot("vcs.zsh", &subcommands);
+    syntax_check("zsh", "-n", &subcommands);
     let bare = completion::<Bare>(Shell::Zsh);
     snapshot("bare.zsh", &bare);
     syntax_check("zsh", "-n", &bare);
@@ -163,6 +229,9 @@ fn fish() {
     let collections = completion::<Compile>(Shell::Fish);
     snapshot("cc.fish", &collections);
     syntax_check("fish", "--no-execute", &collections);
+    let subcommands = completion::<Vcs>(Shell::Fish);
+    snapshot("vcs.fish", &subcommands);
+    syntax_check("fish", "--no-execute", &subcommands);
     snapshot("bare.fish", &completion::<Bare>(Shell::Fish));
 }
 
@@ -174,6 +243,7 @@ fn man() {
     assert_eq!(page, render_man_page(&Cli::COMMAND));
     snapshot("copy.1", &page);
     snapshot("cc.1", &render_man_page(&Compile::COMMAND));
+    snapshot("vcs.1", &render_man_page(&Vcs::COMMAND));
     snapshot("bare.1", &render_man_page(&Bare::COMMAND));
 }
 

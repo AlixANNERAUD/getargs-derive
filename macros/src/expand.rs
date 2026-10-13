@@ -15,6 +15,17 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{DeriveInput, GenericParam};
 
+pub(crate) use flatten::static_args;
+
+pub(crate) fn variant_args(input: &DeriveInput, model: &Model) -> TokenStream {
+    let args_impl = args_trait::args_impl(input, model);
+    let checks = flatten::checks(model);
+    quote! {
+        #args_impl
+        #checks
+    }
+}
+
 fn reserved_longs(container: &ContainerModel) -> Vec<&'static str> {
     let mut long_names = Vec::new();
     if !container.disable_help_flag {
@@ -60,37 +71,28 @@ pub(crate) fn expand(input: &DeriveInput, model: &Model) -> TokenStream {
     let flatten_checks = flatten::checks(model);
     let command_impl = command::command_impl(input, model);
 
+    let context = if model.subcommand.is_some() {
+        quote! { getargs_derive::__private::Context::new(__raw).with_helps(Self::__HELPS) }
+    } else {
+        quote! { getargs_derive::__private::Context::new(__raw) }
+    };
     let body = quote! {
-        let __context = getargs_derive::__private::Context::new(__raw);
+        let __context = #context;
         let mut __state = #args::init();
 
-        while let Some(argument) = options.next_arg().map_err(|error| match error {
-            getargs::Error::DoesNotRequireValue(getargs::Opt::Short(short)) => {
-                getargs_derive::Error::UnexpectedValue(getargs_derive::Opt::Short(short))
-            }
-            getargs::Error::DoesNotRequireValue(getargs::Opt::Long(long)) => {
-                getargs_derive::Error::UnexpectedValue(getargs_derive::Opt::Long(long))
-            }
-            _ => getargs_derive::Error::InvalidArguments,
-        })? {
+        while let Some(argument) = getargs_derive::__private::next_arg(options)? {
             #reserved_match
-            if !#args::try_arg(&mut __state, argument, options, __context)? {
-                return Err(match argument {
-                    getargs::Arg::Positional(value) => {
-                        getargs_derive::Error::UnexpectedArgument(value)
-                    }
-                    getargs::Arg::Short(short) => getargs_derive::Error::UnknownOption {
-                        option: getargs_derive::Opt::Short(short),
-                        suggestion: core::option::Option::None,
-                    },
-                    getargs::Arg::Long(long) => getargs_derive::Error::UnknownOption {
-                        option: getargs_derive::Opt::Long(long),
-                        suggestion: getargs_derive::__suggest(
-                            long,
-                            &[#args::LONGS, &[#(#reserved_longs),*]],
-                        ),
-                    },
-                });
+            if !#args::try_arg(
+                &mut __state,
+                argument,
+                options,
+                __context,
+                &mut getargs_derive::__private::no_globals,
+            )? {
+                return Err(getargs_derive::__private::unexpected(
+                    argument,
+                    &[#args::LONGS, &[#(#reserved_longs),*]],
+                ));
             }
         }
 

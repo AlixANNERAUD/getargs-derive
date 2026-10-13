@@ -1,0 +1,50 @@
+.TH vcs 1 "" "vcs 2.0.0"
+.SH NAME
+vcs \- A version control tool
+.SH SYNOPSIS
+\fBvcs\fR [\fB\-q\fR|\fB\-\-quiet\fR] [\fB\-C\fR|\fB\-\-directory\fR \fIDIRECTORY\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] <\fICOMMAND\fR>
+.SH DESCRIPTION
+A version control tool
+.SH OPTIONS
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Print less output
+.TP
+\fB\-C\fR, \fB\-\-directory\fR=\fIDIRECTORY\fR
+Working directory
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.SH SUBCOMMANDS
+.TP
+\fBvcs commit\fR
+Commit changes
+.br
+\fBvcs commit\fR [\fB\-m\fR|\fB\-\-message\fR \fIMESSAGE\fR] [\fB\-\-color\fR \fICOLOR\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-q\fR|\fB\-\-quiet\fR]
+.TP
+\fBvcs remote\fR
+Manage remotes
+.br
+\fBvcs remote\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-q\fR|\fB\-\-quiet\fR] <\fICOMMAND\fR>
+.TP
+\fBvcs remote add\fR
+Add a remote
+.br
+\fBvcs remote add\fR [\fB\-p\fR|\fB\-\-protocol\fR \fIPROTOCOL\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-q\fR|\fB\-\-quiet\fR] <\fINAME\fR>
+.TP
+\fBvcs remote remove\fR
+Remove a remote
+.br
+[aliases: rm]
+.br
+\fBvcs remote remove\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-q\fR|\fB\-\-quiet\fR] <\fINAME\fR>
+.TP
+\fBvcs remote show\fR
+Show a remote
+.br
+\fBvcs remote show\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-q\fR|\fB\-\-quiet\fR] [\fINAME\fR]
+.SH VERSION
+v2.0.0

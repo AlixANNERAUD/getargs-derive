@@ -10,6 +10,7 @@
 [guide-validation]: crate::guide::validation
 [guide-parsing]: crate::guide::parsing
 [guide-flatten]: crate::guide::flatten
+[guide-subcommands]: crate::guide::subcommands
 [guide-help]: crate::guide::help
 [guide-version]: crate::guide::version
 [guide-errors]: crate::guide::errors
