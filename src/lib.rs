@@ -12,6 +12,7 @@ extern crate std;
 mod env;
 mod error;
 pub mod guide;
+mod parsing;
 mod suggest;
 mod value_enum;
 
@@ -21,6 +22,10 @@ pub use value_enum::{ParseValueEnumError, ValueEnum};
 #[doc(hidden)]
 pub use env::{__EnvSupport, __env};
 
+#[doc(hidden)]
+pub use parsing::{
+    RawArgs as __RawArgs, accepts_value as __accepts_value, negative_number as __negative_number,
+};
 #[doc(hidden)]
 pub use suggest::suggest as __suggest;
 

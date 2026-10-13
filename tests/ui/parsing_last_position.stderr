@@ -1,0 +1,11 @@
+error: `last` positional argument `rest` must be the final positional argument; move it after `input`
+ --> tests/ui/parsing_last_position.rs:5:18
+  |
+5 |     #[arg(last = true)]
+  |                  ^^^^
+
+error: only one positional argument can use `last`, and `first` already does
+  --> tests/ui/parsing_last_position.rs:14:18
+   |
+14 |     #[arg(last = true)]
+   |                  ^^^^

@@ -68,6 +68,10 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<(ContainerModel, Vec<Fie
     let version_enabled = container
         .as_ref()
         .is_some_and(|container| container.version.is_some());
+    if let Some(container) = &container {
+        field::apply_container(&mut models, container.allow_negative_numbers);
+    }
+    field::validate_last(&models, &mut errors);
     validate::validate_struct(&models, help_enabled, version_enabled, &mut errors);
     let groups = container
         .as_ref()

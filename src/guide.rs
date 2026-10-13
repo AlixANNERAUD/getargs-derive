@@ -37,6 +37,10 @@ pub mod relations {}
 pub mod validation {}
 
 #[doc = include_str!("../docs/rustdoc-links.md")]
+#[doc = include_str!("../docs/parsing.md")]
+pub mod parsing {}
+
+#[doc = include_str!("../docs/rustdoc-links.md")]
 #[doc = include_str!("../docs/help.md")]
 pub mod help {}
 

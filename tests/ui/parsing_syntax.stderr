@@ -1,0 +1,23 @@
+error: `allow_negative_numbers` expects a boolean literal, e.g. `allow_negative_numbers = true`
+ --> tests/ui/parsing_syntax.rs:4:36
+  |
+4 | #[command(allow_negative_numbers = 1)]
+  |                                    ^
+
+error: `allow_hyphen_values` expects a boolean literal, e.g. `allow_hyphen_values = true`
+ --> tests/ui/parsing_syntax.rs:6:40
+  |
+6 |     #[arg(short, allow_hyphen_values = "yes")]
+  |                                        ^^^^^
+
+error: `last` expects a boolean, e.g. `last` or `last = true`
+ --> tests/ui/parsing_syntax.rs:8:11
+  |
+8 |     #[arg(last(true))]
+  |           ^^^^
+
+error: duplicate `allow_negative_numbers` attribute
+  --> tests/ui/parsing_syntax.rs:10:42
+   |
+10 |     #[arg(short, allow_negative_numbers, allow_negative_numbers = false)]
+   |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -7,6 +7,7 @@
 [guide-positionals]: crate::guide::positionals
 [guide-relations]: crate::guide::relations
 [guide-validation]: crate::guide::validation
+[guide-parsing]: crate::guide::parsing
 [guide-help]: crate::guide::help
 [guide-version]: crate::guide::version
 [guide-errors]: crate::guide::errors
