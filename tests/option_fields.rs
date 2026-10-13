@@ -45,25 +45,37 @@ fn option_fields_are_parsed_when_present() {
 #[test]
 fn option_fields_report_parse_errors() {
     let err = OptionFields::from_args(["in.txt", "-j", "0"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::ParseError("jobs"));
+    assert_eq!(
+        err,
+        Error::InvalidValue {
+            name: "--jobs <N>",
+            value: "0",
+        }
+    );
 
     let err = OptionFields::from_args(["in.txt", "out.txt", "x"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::ParseError("level"));
+    assert_eq!(
+        err,
+        Error::InvalidValue {
+            name: "<LEVEL>",
+            value: "x",
+        }
+    );
 }
 
 #[test]
 fn option_fields_require_a_value() {
     let err = OptionFields::from_args(["in.txt", "--name"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::MissingOptionValue("name"));
+    assert_eq!(err, Error::MissingOptionValue("--name <NAME>"));
 }
 
 #[test]
 fn option_fields_keep_required_positionals_and_limits() {
     let err = OptionFields::from_args([].into_iter()).unwrap_err();
-    assert_eq!(err, Error::MissingPositionalArgument("input"));
+    assert_eq!(err, Error::MissingArgument("<INPUT>"));
 
     let err = OptionFields::from_args(["a", "b", "1", "c"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::InvalidNumberOfArguments);
+    assert_eq!(err, Error::UnexpectedArgument("c"));
 }
 
 #[test]

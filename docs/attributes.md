@@ -76,7 +76,7 @@ struct Config<'a> {
     archive: bool,
 }
 
-# fn main() -> Result<(), getargs_derive::Error> {
+# fn main() -> Result<(), getargs_derive::Error<'static>> {
 let args = ["in.txt", "--verbose", "-j8", "--mode=deep", "-x"];
 let config = Config::from_args(args.into_iter())?;
 assert_eq!(config.input, "in.txt");

@@ -103,12 +103,12 @@ fn optional_positionals() {
 #[test]
 fn optional_positionals_still_require_leading_positional() {
     let err = OptionalPositionals::from_args([].into_iter()).unwrap_err();
-    assert_eq!(err, Error::MissingPositionalArgument("input"));
+    assert_eq!(err, Error::MissingArgument("<INPUT>"));
 }
 
 #[test]
 fn optional_positionals_reject_extra_arguments() {
     let args = ["a", "b", "1", "extra"];
     let err = OptionalPositionals::from_args(args.into_iter()).unwrap_err();
-    assert_eq!(err, Error::InvalidNumberOfArguments);
+    assert_eq!(err, Error::UnexpectedArgument("extra"));
 }

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use core::num::NonZeroU32;
-use getargs_derive::{Error, GetArgs};
+use getargs_derive::{Error, GetArgs, Opt};
 
 #[derive(Debug, GetArgs)]
 struct RequiredOption<'a> {
@@ -184,7 +184,17 @@ fn help_after_double_dash_is_positional() {
 fn help_disabled_treats_help_as_unknown() {
     for flag in ["-h", "--help"] {
         let err = HelpDisabled::from_args(["in", flag].into_iter()).unwrap_err();
-        assert_eq!(err, Error::UnknownOption);
+        let option = match flag {
+            "-h" => Opt::Short('h'),
+            _ => Opt::Long("help"),
+        };
+        assert_eq!(
+            err,
+            Error::UnknownOption {
+                option,
+                suggestion: None,
+            }
+        );
         assert!(!err.is_help());
     }
 }
@@ -201,7 +211,7 @@ fn help_disabled_allows_short_h() {
 
 #[test]
 fn is_version_false_for_other_errors() {
-    assert!(!Error::UnknownOption.is_version());
+    assert!(!Error::MissingArgument("<INPUT>").is_version());
     assert!(!Error::Help(HelpFull::HELP).is_version());
 }
 

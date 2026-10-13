@@ -19,7 +19,7 @@ struct Fetch<'a> {
     retries: Option<u8>,
 }
 
-# fn main() -> Result<(), getargs_derive::Error> {
+# fn main() -> Result<(), getargs_derive::Error<'static>> {
 let fetch = Fetch::from_args(["https://example.com"].into_iter())?;
 assert_eq!(fetch.destination, None);
 assert_eq!(fetch.retries, None);

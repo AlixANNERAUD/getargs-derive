@@ -25,7 +25,7 @@ struct Cli {
     color: bool,
 }
 
-# fn main() -> Result<(), getargs_derive::Error> {
+# fn main() -> Result<(), getargs_derive::Error<'static>> {
 let cli = Cli::from_args(["-vvv", "--verbose", "--no-color"].into_iter())?;
 assert_eq!(cli.verbose, 4);
 assert!(!cli.color);

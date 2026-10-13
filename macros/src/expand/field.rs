@@ -28,7 +28,10 @@ fn parse_value(field: &FieldModel, value: TokenStream) -> TokenStream {
         value
     } else {
         quote! {
-            #value.parse().map_err(|_| getargs_derive::Error::ParseError(#error_name))?
+            #value.parse().map_err(|_| getargs_derive::Error::InvalidValue {
+                name: #error_name,
+                value: #value,
+            })?
         }
     }
 }
@@ -38,15 +41,17 @@ fn fallback(field: &FieldModel) -> TokenStream {
     match (&field.default, &field.kind) {
         (Some(DefaultValue::Literal(literal)), _) if field.is_str => quote! { #literal },
         (Some(DefaultValue::Literal(literal)), _) => quote! {
-            core::str::FromStr::from_str(#literal)
-                .map_err(|_| getargs_derive::Error::ParseError(#error_name))?
+            core::str::FromStr::from_str(#literal).map_err(|_| getargs_derive::Error::InvalidValue {
+                name: #error_name,
+                value: #literal,
+            })?
         },
         (Some(DefaultValue::Expr(expr)), _) => quote! { #expr },
         (None, FieldKind::Flag(FlagAction::SetTrue)) => quote! { false },
         (None, FieldKind::Flag(FlagAction::SetFalse)) => quote! { true },
         (None, FieldKind::Flag(FlagAction::Count)) => quote! { 0 },
         (None, _) => quote! {
-            return Err(getargs_derive::Error::MissingPositionalArgument(#error_name))
+            return Err(getargs_derive::Error::MissingArgument(#error_name))
         },
     }
 }
@@ -123,8 +128,8 @@ impl FieldTokens {
         let positional_match_arms = &self.positional_match_arms;
         if positional_match_arms.is_empty() {
             quote! {
-                getargs::Arg::Positional(_) => {
-                    return Err(getargs_derive::Error::InvalidNumberOfArguments);
+                getargs::Arg::Positional(value) => {
+                    return Err(getargs_derive::Error::UnexpectedArgument(value));
                 }
             }
         } else {
@@ -132,7 +137,7 @@ impl FieldTokens {
                 getargs::Arg::Positional(value) => {
                     match __positional_index {
                         #(#positional_match_arms)*
-                        _ => return Err(getargs_derive::Error::InvalidNumberOfArguments),
+                        _ => return Err(getargs_derive::Error::UnexpectedArgument(value)),
                     }
                     __positional_index += 1;
                 }

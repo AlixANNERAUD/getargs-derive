@@ -1,48 +1,82 @@
 # Error Handling
 
-The `Error` enum covers the following failure cases:
+`parse` and `from_args` return `Error<'a>`, where `'a` is the lifetime of the parsed arguments: errors describing what the user typed
+borrow the offending argument from the command line instead of copying it, so reporting them needs no allocation.
+Its `Display` implementation produces Clap-style messages, for example `unexpected argument '--bogus' found`.
+This is a Clap-inspired subset of Clap's error reporting: there are no error kinds, colours, usage reminders or exit codes.
 
 ```rust
-use getargs_derive::Error;
+use getargs_derive::{Error, GetArgs, Opt};
 
-fn handle_error(err: Error) {
-    match err {
-        Error::MissingPositionalArgument(name) => {
-            eprintln!("Missing required argument: --{name}");
-        }
-        Error::UnknownOption => {
-            eprintln!("Unknown option");
-        }
-        Error::MissingOptionValue(name) => {
-            eprintln!("Option '{name}' requires a value");
-        }
-        Error::ParseError(name) => {
-            eprintln!("Failed to parse value for '{name}'");
-        }
-        Error::InvalidNumberOfArguments => {
-            eprintln!("Too many positional arguments provided");
-        }
-        Error::Help(help) => {
-            println!("{help}");
-        }
-        Error::Version(version) => {
-            println!("{version}");
-        }
-    }
+#[derive(Debug, GetArgs)]
+struct Cli<'a> {
+    input: &'a str,
+    #[arg(short, long)]
+    verbose: bool,
+    #[arg(short, long, default_value_t = 1)]
+    jobs: u32,
 }
+
+let error = Cli::from_args(["in.txt", "--verbos"].into_iter()).unwrap_err();
+assert_eq!(
+    error,
+    Error::UnknownOption { option: Opt::Long("verbos"), suggestion: Some("verbose") }
+);
+assert_eq!(
+    error.to_string(),
+    "unexpected argument '--verbos' found\n\n  tip: a similar argument exists: '--verbose'"
+);
+
+let error = Cli::from_args(["in.txt", "-j", "many"].into_iter()).unwrap_err();
+assert_eq!(error, Error::InvalidValue { name: "--jobs <JOBS>", value: "many" });
+assert_eq!(error.to_string(), "invalid value 'many' for '--jobs <JOBS>'");
+
+let error = Cli::from_args([].into_iter()).unwrap_err();
+assert_eq!(error.to_string(), "the following required argument was not provided: <INPUT>");
 ```
 
-| Variant                                   | Cause                                                                                        |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `MissingPositionalArgument(&'static str)` | A required named or positional argument was not provided on the command line.                |
-| `UnknownOption`                           | An unrecognised option was given (e.g. `--bogus` or `-z`).                                   |
-| `MissingOptionValue(&'static str)`        | A named option was given without a value (e.g. `--output` at end of args).                   |
-| `ParseError(&'static str)`                | A value or `default_value` could not be parsed into the target field type (e.g. `"abc"` for a `u32`). |
-| `InvalidNumberOfArguments`                | More positional arguments were provided than the struct defines.                             |
-| `Help(&'static str)`                      | Not a failure: `-h` or `--help` was given. Carries the generated help text, which is also what `Display` prints. See [Generated Help][guide-help]. |
-| `Version(&'static str)`                   | Not a failure: `-V` or `--version` was given with `#[command(version)]`. Carries the version line (`VERSION_TEXT`), which is also what `Display` prints. See [Version Flag][guide-version]. |
+| Variant                                               | Cause                                                                                                       | `Display`                                                         |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `MissingArgument(&'static str)`                       | A required positional argument or named option was not provided.                                           | `the following required argument was not provided: <INPUT>`       |
+| `UnknownOption { option: Opt<'a>, suggestion }`       | An option the struct does not define was given (`--bogus`, `-z`). `suggestion` is the closest long name, if any. | `unexpected argument '--bogus' found`, followed by a `tip:` line when there is a suggestion |
+| `UnexpectedArgument(&'a str)`                         | A positional argument was given but the struct expects no more of them.                                     | `unexpected argument 'extra' found`                               |
+| `UnexpectedValue(Opt<'a>)`                            | A value was attached to a flag (`--verbose=yes`).                                                           | `unexpected value for '--verbose': it does not take a value`      |
+| `MissingOptionValue(&'static str)`                    | An option was given without its value (`--output` at the end of the arguments).                            | `a value is required for '--output <OUTPUT>' but none was supplied` |
+| `InvalidValue { name: &'static str, value: &'a str }` | A value or `default_value` could not be parsed into the field type (`abc` for a `u32`).                    | `invalid value 'abc' for '--port <PORT>'`                         |
+| `InvalidArguments`                                    | `getargs` reported an error kind this crate does not recognise (a future `getargs` release). Never returned with known `getargs` 0.5 releases. | `the arguments could not be parsed` |
+| `Help(&'static str)`                                  | Not a failure: `-h` or `--help` was given. Carries the generated help text. See [Generated Help][guide-help]. | the help text                                                   |
+| `Version(&'static str)`                               | Not a failure: `-V` or `--version` was given with `#[command(version)]`. Carries the version line (`VERSION_TEXT`). See [Version Flag][guide-version]. | the version line                     |
 
-The name carried by an error is the long name for named options that have one, and the field name otherwise.
+`Error::is_help()` and `Error::is_version()` tell these two outcomes apart from parse failures.
+
+The `&'static str` names are written as in the generated help: `<VALUE_NAME>` for a positional argument, and the long name (or the short name
+when there is none) followed by `<VALUE_NAME>` for a named option (`--jobs <JOBS>`, `-p <PORT>`). `Opt<'a>` is the option as the user wrote it,
+`Opt::Short('z')` or `Opt::Long("bogus")`, and displays with its dashes.
+
+Suggestions are computed without allocation against the struct's long option names, including `help` unless the help flag is disabled and `version`
+when the version flag is enabled, using the edit distance with transpositions: a name is suggested when the distance is at most a third of the longer
+of the two names. Short options never get suggestions.
+
+Because errors borrow from the arguments, they must be handled while the arguments are alive. When the arguments are string literals the error is `Error<'static>`
+and can be returned from `main`; with `std::env::args()`, collect the arguments first and report the error before they are dropped,
+as shown in [Generated Help][guide-help].
+
+## Changes From Earlier Versions
+
+The `Error` enum was redesigned to report the offending argument:
+
+| Before                              | After                                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------------- |
+| `Error`                             | `Error<'a>`, borrowing from the parsed arguments.                                         |
+| `MissingPositionalArgument(name)`   | `MissingArgument(name)`; it is also used for named options. The name is now `<INPUT>` or `--name <NAME>` instead of the field or long name. |
+| `UnknownOption`                     | `UnknownOption { option, suggestion }`.                                                   |
+| `InvalidNumberOfArguments`          | `UnexpectedArgument(argument)`.                                                           |
+| `ParseError(name)`                  | `InvalidValue { name, value }`.                                                           |
+| `MissingOptionValue(name)`          | Unchanged, but the name is now `--output <OUTPUT>` instead of `output`.                   |
+| `UnknownOption` for `--flag=value`  | `UnexpectedValue(option)`.                                                                |
+| `Help(text)`, `Version(text)`       | Unchanged.                                                                                |
+
+`Display` messages now follow Clap's wording instead of the previous capitalised messages.
 
 [guide-help]: help.md
 [guide-version]: version.md

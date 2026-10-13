@@ -1,32 +1,78 @@
+/// An option as it was written on the command line, without its leading dashes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Opt<'a> {
+    /// A short option, like `-z` (stored as `'z'`).
+    Short(char),
+    /// A long option, like `--bogus` (stored as `"bogus"`).
+    Long(&'a str),
+}
+
+impl core::fmt::Display for Opt<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Opt::Short(short) => write!(f, "-{short}"),
+            Opt::Long(long) => write!(f, "--{long}"),
+        }
+    }
+}
+
 /// Errors that can occur when parsing CLI arguments with [`GetArgs`](crate::GetArgs).
+///
+/// The lifetime `'a` is the lifetime of the parsed arguments: variants describing what the
+/// user typed borrow it from the command line instead of copying it, so no allocation is needed.
+///
+/// Names of the struct's own arguments (`&'static str`) are written as in the generated help:
+/// `<INPUT>` for a positional argument, `--output <OUTPUT>` for an option taking a value
+/// (`-o <OUTPUT>` when it has no long name).
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Error {
-    /// A required positional or named argument was not provided on the command line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Error<'a> {
+    /// A required positional argument or named option was not provided on the command line.
     ///
-    /// The string is the name of the missing argument (e.g. `"input"` for a positional,
-    /// or `"verbose"` for a named option).
-    MissingPositionalArgument(&'static str),
+    /// The string is the argument name, e.g. `"<INPUT>"` or `"--output <OUTPUT>"`.
+    MissingArgument(&'static str),
 
-    /// An unrecognised option was given on the command line.
-    ///
-    /// This includes both unknown short flags (`-z`) and long flags (`--bogus`).
-    UnknownOption,
+    /// An option that the struct does not define was given, e.g. `--bogus` or `-z`.
+    UnknownOption {
+        /// The unknown option, as written by the user.
+        option: Opt<'a>,
+        /// The closest long option name (without `--`) when an unknown long option looks like a
+        /// typo of a known one, e.g. `Some("verbose")` for `--verbos`.
+        suggestion: Option<&'static str>,
+    },
 
-    /// A named option was given but no value was provided.
+    /// A positional argument was given but the struct expects no more of them.
     ///
-    /// The string is the option name (e.g. `"output"` or `"-j"`).
-    /// For example, `--output` at the end of the command line without a following value.
+    /// The string is the extra argument, as written by the user.
+    UnexpectedArgument(&'a str),
+
+    /// A value was attached to an option that does not take one, e.g. `--verbose=yes` for a flag.
+    ///
+    /// The option is the one written by the user.
+    UnexpectedValue(Opt<'a>),
+
+    /// An option taking a value was given without one, e.g. `--output` at the end of the
+    /// command line.
+    ///
+    /// The string is the option name, e.g. `"--output <OUTPUT>"`.
     MissingOptionValue(&'static str),
 
-    /// A value could not be parsed into the target field type.
+    /// The underlying `getargs` parser reported an error that this crate does not recognise.
     ///
-    /// The string is the field or option name (e.g. `"num"` or `"port"`).
-    /// For example, providing `"abc"` for a `u32` field.
-    ParseError(&'static str),
+    /// `getargs` may add error kinds in a compatible release; they are reported as this variant
+    /// instead of panicking. It is never returned with the `getargs` 0.5 releases known to this
+    /// crate.
+    InvalidArguments,
 
-    /// More positional arguments were provided than the struct defines.
-    InvalidNumberOfArguments,
+    /// A value could not be parsed into the target field type, e.g. `abc` for a `u32` field.
+    ///
+    /// This is also returned when a `default_value` string does not parse.
+    InvalidValue {
+        /// The argument name, e.g. `"--port <PORT>"` or `"<COUNT>"`.
+        name: &'static str,
+        /// The value that failed to parse.
+        value: &'a str,
+    },
 
     /// Help was requested with `-h` or `--help`.
     ///
@@ -43,7 +89,7 @@ pub enum Error {
     Version(&'static str),
 }
 
-impl Error {
+impl Error<'_> {
     /// Returns `true` if this is [`Error::Help`], i.e. the user asked for help rather than
     /// passing invalid arguments.
     #[must_use]
@@ -59,19 +105,39 @@ impl Error {
     }
 }
 
-impl core::fmt::Display for Error {
+impl core::fmt::Display for Error<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Error::MissingPositionalArgument(arg) => {
-                write!(f, "Missing required argument: '{}'", arg)
+            Error::MissingArgument(name) => {
+                write!(
+                    f,
+                    "the following required argument was not provided: {name}"
+                )
             }
-            Error::UnknownOption => write!(f, "Unknown option"),
+            Error::UnknownOption { option, suggestion } => {
+                write!(f, "unexpected argument '{option}' found")?;
+                match suggestion {
+                    Some(suggestion) => {
+                        write!(f, "\n\n  tip: a similar argument exists: '--{suggestion}'")
+                    }
+                    None => Ok(()),
+                }
+            }
+            Error::UnexpectedArgument(argument) => {
+                write!(f, "unexpected argument '{argument}' found")
+            }
+            Error::UnexpectedValue(option) => {
+                write!(
+                    f,
+                    "unexpected value for '{option}': it does not take a value"
+                )
+            }
+            Error::InvalidArguments => f.write_str("the arguments could not be parsed"),
             Error::MissingOptionValue(name) => {
-                write!(f, "Option '{}' requires a value", name)
+                write!(f, "a value is required for '{name}' but none was supplied")
             }
-            Error::ParseError(name) => write!(f, "Failed to parse value for '{}'", name),
-            Error::InvalidNumberOfArguments => {
-                write!(f, "Invalid number of arguments provided")
+            Error::InvalidValue { name, value } => {
+                write!(f, "invalid value '{value}' for '{name}'")
             }
             Error::Help(help) => f.write_str(help),
             Error::Version(version) => f.write_str(version),
@@ -79,4 +145,4 @@ impl core::fmt::Display for Error {
     }
 }
 
-impl core::error::Error for Error {}
+impl core::error::Error for Error<'_> {}

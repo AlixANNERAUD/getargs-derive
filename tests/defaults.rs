@@ -61,7 +61,13 @@ fn default_value_and_default_value_t() {
 #[test]
 fn invalid_default_value_reports_parse_error() {
     let err = InvalidDefaultValue::from_args([].into_iter()).unwrap_err();
-    assert_eq!(err, Error::ParseError("jobs"));
+    assert_eq!(
+        err,
+        Error::InvalidValue {
+            name: "--jobs <JOBS>",
+            value: "abc",
+        }
+    );
 }
 
 #[test]
