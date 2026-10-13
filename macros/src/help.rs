@@ -119,7 +119,20 @@ fn description(field: &FieldModel, mode: Mode) -> Text {
         parts.push(vec![Segment::Text(format!("[env: {env}=]"))]);
     }
     let takes_value = matches!(field.kind, FieldKind::Positional | FieldKind::Option);
-    if let (Some(default), true) = (&field.default, takes_value) {
+    let default_values = field
+        .collection
+        .as_ref()
+        .map_or(&[][..], |collection| collection.default_values.as_slice());
+    if !default_values.is_empty() {
+        let values: Vec<String> = default_values
+            .iter()
+            .map(|literal| quote_if_spaced(literal.value()))
+            .collect();
+        parts.push(vec![Segment::Text(format!(
+            "[default: {}]",
+            values.join(", ")
+        ))]);
+    } else if let (Some(default), true) = (&field.default, takes_value) {
         let value = field
             .value_enum
             .then(|| value_enum_default(field, default))
@@ -193,8 +206,8 @@ pub(crate) fn entry_label(field: &FieldModel) -> String {
 pub(crate) fn usage_label(field: &FieldModel) -> String {
     match (field.parsing.last, field.is_optional()) {
         (false, _) => positional_label(field),
-        (true, true) => format!("[-- <{}>]", field.value_name),
-        (true, false) => format!("-- <{}>", field.value_name),
+        (true, true) => format!("[-- <{}>{}]", field.value_name, field.ellipsis()),
+        (true, false) => format!("-- <{}>{}", field.value_name, field.ellipsis()),
     }
 }
 
@@ -206,9 +219,9 @@ pub(crate) fn entry_description(field: &FieldModel, mode: Mode) -> (TokenStream,
 
 fn positional_label(field: &FieldModel) -> String {
     if field.is_optional() {
-        format!("[{}]", field.value_name)
+        format!("[{}]{}", field.value_name, field.ellipsis())
     } else {
-        format!("<{}>", field.value_name)
+        format!("<{}>{}", field.value_name, field.ellipsis())
     }
 }
 

@@ -70,13 +70,20 @@ fn synopsis(command: &CommandInfo) -> String {
         if arg.last {
             value = std::format!("\\-\\- {value}");
         }
-        if arg.required {
-            synopsis.push_str(&std::format!(" <{value}>"));
-        } else {
-            synopsis.push_str(&std::format!(" [{value}]"));
-        }
+        synopsis.push(' ');
+        synopsis.push_str(&positional(arg, value));
     }
     synopsis
+}
+
+fn positional(arg: &ArgInfo, value: String) -> String {
+    let ellipsis = if arg.multiple { "..." } else { "" };
+    match (arg.required, arg.last) {
+        (true, false) => std::format!("<{value}>{ellipsis}"),
+        (false, false) => std::format!("[{value}]{ellipsis}"),
+        (true, true) => std::format!("<{value}{ellipsis}>"),
+        (false, true) => std::format!("[{value}{ellipsis}]"),
+    }
 }
 
 fn entry(output: &mut String, header: String, arg: &ArgInfo) {
@@ -140,9 +147,11 @@ pub(super) fn render(command: &CommandInfo) -> String {
     if positionals(command).next().is_some() {
         output.push_str(".SH ARGUMENTS\n");
         for arg in positionals(command) {
-            let header = match arg.required {
-                true => std::format!("<{}>", italic(arg.value_name)),
-                false => std::format!("[{}]", italic(arg.value_name)),
+            let header = match (arg.required, arg.multiple) {
+                (true, true) => std::format!("<{}>...", italic(arg.value_name)),
+                (true, false) => std::format!("<{}>", italic(arg.value_name)),
+                (false, true) => std::format!("[{}]...", italic(arg.value_name)),
+                (false, false) => std::format!("[{}]", italic(arg.value_name)),
             };
             entry(&mut output, header, arg);
         }

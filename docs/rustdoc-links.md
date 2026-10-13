@@ -5,6 +5,7 @@
 [guide-defaults]: crate::guide::defaults
 [guide-env]: crate::guide::env
 [guide-positionals]: crate::guide::positionals
+[guide-collections]: crate::guide::collections
 [guide-relations]: crate::guide::relations
 [guide-validation]: crate::guide::validation
 [guide-parsing]: crate::guide::parsing

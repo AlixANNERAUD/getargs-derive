@@ -10,7 +10,8 @@ mod validate;
 pub(crate) use container::{ContainerModel, Version};
 use field::Member;
 pub(crate) use field::{
-    Alias, DefaultValue, FieldKind, FieldModel, FlagAction, FlattenModel, ValueParser,
+    Alias, CollectionModel, DefaultValue, FieldKind, FieldModel, FlagAction, FlattenModel,
+    ValueParser,
 };
 pub(crate) use relations::resolve_groups;
 
@@ -121,6 +122,7 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<Model> {
         field::apply_container(&mut models, container.allow_negative_numbers);
     }
     field::validate_last(&models, &mut errors);
+    field::validate_positionals(&models, &mut errors);
     validate::validate_struct(&models, help_enabled, version_enabled, &mut errors);
     let groups = container
         .as_ref()

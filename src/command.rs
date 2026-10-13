@@ -127,7 +127,9 @@ pub struct ArgInfo {
     pub hidden: bool,
     /// Whether the argument must be given.
     pub required: bool,
-    /// Whether the argument can be given several times, e.g. a `Count` flag.
+    /// Whether the argument can be given several times, e.g. a `Count` flag or a field collecting
+    /// [repeated values][crate::guide::collections]. A repeatable positional argument takes every
+    /// remaining positional argument.
     pub multiple: bool,
     /// Whether the positional argument is only filled after `--`.
     pub last: bool,

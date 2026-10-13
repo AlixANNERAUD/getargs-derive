@@ -45,6 +45,8 @@ assert_eq!(error.to_string(), "the following required argument was not provided:
 | `InvalidValue { name: &'static str, value: &'a str }` | A value or `default_value` could not be parsed into the field type (`abc` for a `u32`), or a `value_parser` function rejected it. | `invalid value 'abc' for '--port <PORT>'`                         |
 | `InvalidPossibleValue { name, value, possible_values }` | A value or `default_value` is not one of the `possible_values`. See [Value Validation][guide-validation]. | `invalid value 'turbo' for '--mode <MODE>'`, followed by a `[possible values: fast, slow]` line |
 | `ValueOutOfRange { name, value, range }`              | A value or `default_value` is outside the `value_parser` range. `range` is written as in the attribute.   | `invalid value '0' for '--jobs <JOBS>': 0 is not in 1..=64`        |
+| `TooManyValues { name, value, max }`                  | A [repeated argument][guide-collections] received more values than its collection holds or its `num_args` accepts. `value` is the first value that did not fit. | `unexpected value 'd' for '--include <INCLUDE>' found; no more were expected` |
+| `TooFewValues { name, min, actual }`                  | A positional collection received fewer values than its `num_args` minimum, but at least one.               | `2 values required by '<PATHS>...'; only 1 was provided`          |
 | `ArgumentConflict { name, other }`                    | Two arguments that cannot be used together were given (`conflicts_with` or an exclusive group). See [Argument Relations][guide-relations]. | `the argument '--quiet' cannot be used with '--verbose'` |
 | `MissingRequiredArgument { name, required_by }`       | An argument was given without an argument it `requires`.                                                    | `the following required argument was not provided: --output <OUTPUT> (required by '--compress')` |
 | `MissingOneOf(&'static [&'static str])`               | None of a set of arguments was given (`required_unless_present` or a `required` group).                     | `the following required arguments were not provided: <--config <CONFIG>\|--stdin>` |
@@ -67,6 +69,7 @@ and can be returned from `main`; with `std::env::args()`, collect the arguments 
 as shown in [Generated Help][guide-help].
 
 [guide-aliases]: aliases.md
+[guide-collections]: collections.md
 [guide-help]: help.md
 [guide-relations]: relations.md
 [guide-validation]: validation.md

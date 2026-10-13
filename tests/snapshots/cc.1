@@ -1,0 +1,33 @@
+.TH cc 1
+.SH NAME
+cc \- Compile sources
+.SH SYNOPSIS
+\fBcc\fR [\fB\-I\fR|\fB\-\-include\fR \fIINCLUDE\fR] [\fB\-O\fR|\fB\-\-opt\fR \fIOPT\fR] [\fB\-h\fR|\fB\-\-help\fR] <\fILANGUAGE\fR> <\fISOURCES\fR>... [\-\- \fILINKER\fR...]
+.SH DESCRIPTION
+Compile sources
+.SH ARGUMENTS
+.TP
+<\fILANGUAGE\fR>
+Target language
+.sp
+[\fIpossible values: \fRc, c++]
+.TP
+<\fISOURCES\fR>...
+Source files
+.sp
+[\fIpossible values: \fRmain.c, util.c]
+.TP
+[\fILINKER\fR]...
+Linker arguments
+.SH OPTIONS
+.TP
+\fB\-I\fR, \fB\-\-include\fR=\fIINCLUDE\fR
+Header directories
+.TP
+\fB\-O\fR, \fB\-\-opt\fR=\fIOPT\fR
+Optimization level
+.sp
+[\fIpossible values: \fR0, 1, 2, 3]
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help

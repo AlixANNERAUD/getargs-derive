@@ -1,4 +1,5 @@
 mod args_trait;
+mod collection;
 mod command;
 mod env;
 mod field;

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use getargs_derive::{ArgInfo, ArgKind, Command, CommandInfo, GetArgs, ValueEnum};
+use getargs_derive::{ArgInfo, ArgKind, Command, CommandInfo, GetArgs, ValueEnum, Values};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum Color {
@@ -147,4 +147,62 @@ fn info_builders() {
     let arg = ArgInfo::new("help", ArgKind::Flag).help("Short");
     assert_eq!(arg.long_or_short_help(), "Short");
     assert_eq!(arg.long_help("Long").long_or_short_help(), "Long");
+}
+
+#[derive(GetArgs)]
+#[command(name = "cc")]
+struct Compile<'a> {
+    /// Header directories.
+    #[arg(short = 'I', long, default_values = ["include"])]
+    include: Values<&'a str, 4>,
+    /// Source files.
+    #[arg(num_args = 1..)]
+    sources: Values<&'a str, 8>,
+    /// Linker arguments.
+    #[arg(last = true)]
+    linker: Values<&'a str, 4>,
+    #[command(flatten)]
+    verbosity: Verbosity,
+}
+
+#[test]
+fn collection_metadata() {
+    let args = Compile::COMMAND.args;
+    assert_eq!(
+        args[0],
+        ArgInfo::new("include", ArgKind::Option)
+            .short('I')
+            .long("include")
+            .value_name("INCLUDE")
+            .help("Header directories")
+            .multiple(true)
+    );
+    assert_eq!(
+        args[1],
+        ArgInfo::new("sources", ArgKind::Positional)
+            .value_name("SOURCES")
+            .help("Source files")
+            .required(true)
+            .multiple(true)
+    );
+    assert!(args[2].multiple);
+    assert!(args[2].last);
+    assert!(!args[2].required);
+    assert_eq!(args[3].id, "verbose");
+    assert!(args[3].multiple);
+    assert_eq!(args[4].id, "help");
+    assert!(!args[4].multiple);
+}
+
+#[derive(GetArgs)]
+struct Files<'a> {
+    files: Values<&'a str, 8>,
+}
+
+#[test]
+fn optional_positional_collection_metadata() {
+    let files = Files::COMMAND.args[0];
+    assert!(files.multiple);
+    assert!(!files.required);
+    assert!(files.is_positional());
 }

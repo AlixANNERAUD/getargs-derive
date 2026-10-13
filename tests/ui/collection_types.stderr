@@ -1,0 +1,17 @@
+error: fixed-size array fields are not supported; collect repeated values into `getargs_derive::Values<T, N>`, `heapless::Vec<T, N>` (feature `heapless`) or `Vec<T>` (feature `alloc`)
+ --> tests/ui/collection_types.rs:6:12
+  |
+6 |     array: [u8; 2],
+  |            ^^^^^^^
+
+error: `Option<T>` cannot wrap a collection; a collection field is already empty when absent, so remove the `Option`
+ --> tests/ui/collection_types.rs:8:15
+  |
+8 |     optional: Option<Values<&'a str, 2>>,
+  |               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: collection elements cannot be collections, arrays or `Option<T>`
+  --> tests/ui/collection_types.rs:10:20
+   |
+10 |     nested: Values<Option<u8>, 2>,
+   |                    ^^^^^^^^^^

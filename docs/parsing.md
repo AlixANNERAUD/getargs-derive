@@ -114,8 +114,8 @@ This shapes what can be supported:
   `Error::MissingOptionValue`, as Clap does when the next argument is a known option.
 - After `--`, `getargs` returns every remaining argument as a positional, so options, negative numbers and hyphen values need no special
   handling there.
-- Clap's `allow_hyphen_values` on the whole command, `trailing_var_arg`, `raw` and `allow_missing_positional` are not supported, nor are
-  `last` positionals collecting several values (`Vec<T>` fields are not supported).
+- Clap's `allow_hyphen_values` on the whole command, `trailing_var_arg`, `raw` and `allow_missing_positional` are not supported.
+  A `last` positional can collect several values with a collection type; see [Repeated Values][guide-collections].
 
 ## Compile-Time Diagnostics
 
@@ -128,6 +128,7 @@ The macro reports a compile error, pointing at the offending attribute, for:
 - `last` on more than one positional, or on a positional that is not the final one;
 - `global`, which is not supported.
 
+[guide-collections]: collections.md
 [guide-env]: env.md
 [guide-errors]: errors.md
 [guide-parsing]: parsing.md

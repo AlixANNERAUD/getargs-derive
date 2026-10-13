@@ -1,5 +1,6 @@
 mod action;
 mod aliases;
+mod collection;
 mod command;
 mod defaults;
 mod display;
@@ -17,6 +18,8 @@ use super::errors::Errors;
 use super::types::{is_bool_type, is_count_type, is_str_reference_type, option_inner_type};
 pub(crate) use action::FlagAction;
 pub(crate) use aliases::Alias;
+pub(crate) use collection::CollectionModel;
+pub(super) use collection::validate_positionals;
 pub(crate) use parsing::Parsing;
 pub(super) use parsing::{apply_container, parse_bool, validate_last};
 use proc_macro2::Span;
@@ -34,6 +37,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("conflicts_with", relations::conflicts_with),
     Key::new("default_value", defaults::default_value),
     Key::new("default_value_t", defaults::default_value_t),
+    Key::new("default_values", collection::default_values),
     Key::new("display_order", display::display_order),
     Key::new("env", env::env),
     Key::new("group", relations::group),
@@ -43,6 +47,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("last", parsing::last),
     Key::new("long", names::long),
     Key::new("long_help", display::long_help),
+    Key::new("num_args", collection::num_args),
     Key::new("possible_values", validation::possible_values),
     Key::new(
         "required_unless_present",
@@ -52,6 +57,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("short", names::short),
     Key::new("short_alias", aliases::short_alias),
     Key::new("short_aliases", aliases::short_aliases),
+    Key::new("value_delimiter", collection::value_delimiter),
     Key::new("value_enum", value_enum::value_enum),
     Key::new("value_name", help::value_name),
     Key::new("value_parser", validation::value_parser),
@@ -118,6 +124,7 @@ pub(crate) struct FieldModel {
     pub(crate) display_order: Option<usize>,
     pub(crate) long_help: Option<String>,
     pub(crate) parsing: Parsing,
+    pub(crate) collection: Option<CollectionModel>,
     pub(super) short_span: Span,
     pub(super) long_span: Span,
 }
@@ -127,7 +134,7 @@ impl FieldModel {
         let option = match (self.short, &self.long) {
             (_, Some(long)) => format!("--{long}"),
             (Some(short), None) => format!("-{short}"),
-            (None, None) => return format!("<{}>", self.value_name),
+            (None, None) => return format!("<{}>{}", self.value_name, self.ellipsis()),
         };
         match self.kind {
             FieldKind::Flag(_) => option,
@@ -175,6 +182,7 @@ struct RawField {
     display_order: Option<(usize, Span)>,
     long_help: Option<String>,
     parsing: parsing::RawParsing,
+    collection: collection::RawCollection,
 }
 
 fn to_kebab_case(name: &str) -> String {
@@ -293,11 +301,12 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
     };
     let raw = parse_raw_field(field)?;
     let name = ident.unraw().to_string();
+    let mut errors = Errors::default();
+    let element = collection::element(&field.ty, &mut errors);
     let inner_ty = option_inner_type(&field.ty);
-    let value_ty = inner_ty.unwrap_or(&field.ty);
+    let value_ty = element.or(inner_ty).unwrap_or(&field.ty);
     let is_bool = is_bool_type(&field.ty);
     let named = raw.short.is_some() || raw.long.is_some();
-    let mut errors = Errors::default();
 
     if let Some(inner) = inner_ty {
         if is_bool_type(inner) {
@@ -449,12 +458,26 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
         env
     });
 
+    let collection = collection::build(
+        raw.collection,
+        element.is_some(),
+        &kind,
+        raw.default.as_ref(),
+        raw.possible_values
+            .as_ref()
+            .map_or(&[][..], |values| values.values.as_slice()),
+        &mut errors,
+    );
+
     validation::check(
         raw.value_parser.as_ref(),
         raw.possible_values.as_ref(),
         &kind,
         value_ty,
-        raw.default.as_ref().map(|(_, value)| value),
+        raw.default
+            .as_ref()
+            .filter(|_| collection.is_none())
+            .map(|(_, value)| value),
         raw.value_enum.is_some(),
         &mut errors,
     );
@@ -469,7 +492,10 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
         name,
         is_str: is_str_reference_type(value_ty),
         value_ty: value_ty.clone(),
-        optional: inner_ty.is_some(),
+        optional: match &collection {
+            Some(collection) => collection.min == 0,
+            None => inner_ty.is_some(),
+        },
         ty: field.ty.clone(),
         kind,
         short,
@@ -492,6 +518,7 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
         display_order: raw.display_order.map(|(order, _)| order),
         long_help: raw.long_help.or_else(|| long_doc(&field.attrs)),
         parsing,
+        collection,
         short_span,
         long_span,
     })

@@ -77,6 +77,11 @@ pub(super) fn render(command: &CommandInfo) -> String {
         output.push_str("            *) (( position++ )) ;;\n");
         output.push_str("        esac\n");
         output.push_str("    done\n");
+        if let Some(index) = positionals(command).position(|arg| arg.multiple && !arg.last) {
+            output.push_str(&std::format!(
+                "    (( position > {index} )) && position={index}\n"
+            ));
+        }
         output.push_str("    case \"${position}\" in\n");
         for (index, arg) in positional_values {
             output.push_str(&std::format!("        {index})\n"));
