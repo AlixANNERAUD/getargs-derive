@@ -1,0 +1,5 @@
+error: `bool` fields cannot be positional; add `short` and/or `long` to make it a flag, e.g. `#[arg(short, long)]`
+ --> tests/ui/bool_positional.rs:5:5
+  |
+5 |     verbose: bool,
+  |     ^^^^^^^

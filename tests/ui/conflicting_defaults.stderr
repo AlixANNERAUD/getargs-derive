@@ -1,0 +1,17 @@
+error: conflicting default values: `default_value` and `default_value_t` cannot be used together; use only `default_value` or `default_value_t`
+ --> tests/ui/conflicting_defaults.rs:5:38
+  |
+5 |     #[arg(long, default_value = "4", default_value_t = 4)]
+  |                                      ^^^^^^^^^^^^^^^
+
+error: conflicting default values: `default_value_t` and `#[default]` cannot be used together; use only `default_value` or `default_value_t`
+  --> tests/ui/conflicting_defaults.rs:12:7
+   |
+12 |     #[default(4)]
+   |       ^^^^^^^
+
+error: duplicate `default_value_t` attribute
+  --> tests/ui/conflicting_defaults.rs:18:38
+   |
+18 |     #[arg(long, default_value_t = 4, default_value_t = 5)]
+   |                                      ^^^^^^^^^^^^^^^
