@@ -8,7 +8,11 @@ extern crate self as getargs_derive;
 
 mod error;
 pub mod guide;
+mod suggest;
 
 pub use error::*;
+
+#[doc(hidden)]
+pub use suggest::suggest as __suggest;
 
 pub use getargs_derive_macros::GetArgs;

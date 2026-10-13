@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use getargs_derive::{Error, GetArgs};
+use getargs_derive::{Error, GetArgs, Opt};
 
 #[derive(Debug, GetArgs)]
 struct FlagActions {
@@ -52,7 +52,7 @@ fn set_false_and_set_true_actions() {
 #[test]
 fn count_action_rejects_value() {
     let err = FlagActions::from_args(["--verbose=2"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::UnknownOption);
+    assert_eq!(err, Error::UnexpectedValue(Opt::Long("verbose")));
 }
 
 #[derive(Debug, GetArgs)]

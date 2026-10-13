@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use getargs_derive::{Error, GetArgs};
+use getargs_derive::{Error, GetArgs, Opt};
 
 #[derive(Debug, GetArgs)]
 #[command(name = "copy", version)]
@@ -25,6 +25,10 @@ struct VersionDisabled<'a> {
     #[arg(short = 'V', long)]
     version: &'a str,
 }
+
+#[derive(Debug, GetArgs)]
+#[command(name = "helponly")]
+struct HelpOnly {}
 
 #[test]
 fn version_package_constants() {
@@ -90,7 +94,61 @@ fn version_without_help_flag() {
     let err = VersionWithoutHelp::from_args(["--version"].into_iter()).unwrap_err();
     assert!(err.is_version());
     let err = VersionWithoutHelp::from_args(["--help"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::UnknownOption);
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Long("help"),
+            suggestion: None,
+        }
+    );
+}
+
+#[test]
+fn unknown_option_suggests_version() {
+    let err = VersionPackage::from_args(["--versoin"].into_iter()).unwrap_err();
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Long("versoin"),
+            suggestion: Some("version"),
+        }
+    );
+    assert_eq!(
+        err.to_string(),
+        "unexpected argument '--versoin' found\n\n  tip: a similar argument exists: '--version'"
+    );
+}
+
+#[test]
+fn version_without_help_flag_suggests_only_version() {
+    let err = VersionWithoutHelp::from_args(["--hlep"].into_iter()).unwrap_err();
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Long("hlep"),
+            suggestion: None,
+        }
+    );
+    let err = VersionWithoutHelp::from_args(["--verison"].into_iter()).unwrap_err();
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Long("verison"),
+            suggestion: Some("version"),
+        }
+    );
+}
+
+#[test]
+fn version_disabled_does_not_suggest_version() {
+    let err = HelpOnly::from_args(["--versoin"].into_iter()).unwrap_err();
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Long("versoin"),
+            suggestion: None,
+        }
+    );
 }
 
 #[test]

@@ -33,7 +33,7 @@ struct Cli<'a> {
     output: &'a str,
 }
 
-# fn main() -> Result<(), getargs_derive::Error> {
+# fn main() -> Result<(), getargs_derive::Error<'static>> {
 let args = ["input.txt", "--verbose"];
 let cli = Cli::from_args(args.into_iter())?;
 assert_eq!(cli.input, "input.txt");
@@ -54,7 +54,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 - [Positional and Optional Arguments][guide-positionals]: positional arguments and `Option<T>` fields.
 - [Generated Help][guide-help]: the `HELP` constant, `-h`/`--help` and `disable_help_flag`.
 - [Version Flag][guide-version]: `#[command(version)]`, `-V`/`--version` and the `VERSION`/`VERSION_TEXT` constants.
-- [Error Handling][guide-errors]: the `Error` enum.
+- [Error Handling][guide-errors]: the `Error` enum, its Clap-style messages and "did you mean" suggestions.
 - [Clap Compatibility][guide-clap]: what is shared with Clap, and what is not supported.
 - [Legacy Syntax][guide-legacy]: deprecated attributes and how to migrate from them.
 - [`no_std` Support][guide-no-std].

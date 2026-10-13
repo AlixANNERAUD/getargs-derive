@@ -64,10 +64,15 @@ pub(crate) struct FieldModel {
 }
 
 impl FieldModel {
-    pub(crate) fn error_name(&self) -> &str {
-        match (&self.kind, &self.long) {
-            (FieldKind::Positional, _) | (_, None) => &self.name,
-            (_, Some(long)) => long,
+    pub(crate) fn error_name(&self) -> String {
+        let option = match (self.short, &self.long) {
+            (_, Some(long)) => format!("--{long}"),
+            (Some(short), None) => format!("-{short}"),
+            (None, None) => return format!("<{}>", self.value_name),
+        };
+        match self.kind {
+            FieldKind::Flag(_) => option,
+            _ => format!("{option} <{}>", self.value_name),
         }
     }
 

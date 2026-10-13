@@ -40,5 +40,11 @@ fn from_args_empty_defaults() {
 fn from_args_parse_error() {
     let args = ["-n", "not-a-number"];
     let err = ParseInt::from_args(args.into_iter()).unwrap_err();
-    assert_eq!(err, Error::ParseError("num"));
+    assert_eq!(
+        err,
+        Error::InvalidValue {
+            name: "-n <NUM>",
+            value: "not-a-number",
+        }
+    );
 }

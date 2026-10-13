@@ -103,7 +103,7 @@ struct Cli<'a> {
     host: &'a str,
 }
 
-# fn main() -> Result<(), getargs_derive::Error> {
+# fn main() -> Result<(), getargs_derive::Error<'static>> {
 let cli = Cli::from_args(["-h", "example.com"].into_iter())?;
 assert_eq!(cli.host, "example.com");
 assert_eq!(

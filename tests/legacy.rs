@@ -1,4 +1,4 @@
-use getargs_derive::{Error, GetArgs};
+use getargs_derive::{Error, GetArgs, Opt};
 
 #[derive(GetArgs)]
 struct WithLegacyDefault {
@@ -51,7 +51,7 @@ fn extra_positional_with_explicit_marker() {
     let args = ["hello", "world"];
     let mut options = getargs::Options::new(args.into_iter());
     let err = ExplicitPositional::parse(&mut options).unwrap_err();
-    assert_eq!(err, Error::InvalidNumberOfArguments);
+    assert_eq!(err, Error::UnexpectedArgument("world"));
 }
 
 #[test]
@@ -84,5 +84,11 @@ fn legacy_default_without_name_is_optional_positional() {
 
     let args = ["--count", "3"];
     let err = LegacyPositionalDefault::from_args(args.into_iter()).unwrap_err();
-    assert_eq!(err, Error::UnknownOption);
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Long("count"),
+            suggestion: None,
+        }
+    );
 }

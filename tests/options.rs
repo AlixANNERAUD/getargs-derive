@@ -1,5 +1,5 @@
 use core::num::NonZeroU32;
-use getargs_derive::{Error, GetArgs};
+use getargs_derive::{Error, GetArgs, Opt};
 
 #[derive(GetArgs)]
 struct CustomShort<'a> {
@@ -70,7 +70,7 @@ fn nonzero_type() {
 #[test]
 fn nonzero_without_default_is_required() {
     let err = WithNonZero::from_args([].into_iter()).unwrap_err();
-    assert_eq!(err, Error::MissingPositionalArgument("port"));
+    assert_eq!(err, Error::MissingArgument("-p <PORT>"));
 }
 
 #[test]
@@ -90,13 +90,25 @@ fn inferred_short_and_long() {
 #[test]
 fn short_only_rejects_long() {
     let err = InferredNames::from_args(["--jobs", "4"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::UnknownOption);
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Long("jobs"),
+            suggestion: None,
+        }
+    );
 }
 
 #[test]
 fn long_only_rejects_short() {
     let err = InferredNames::from_args(["-d"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::UnknownOption);
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Short('d'),
+            suggestion: None,
+        }
+    );
 }
 
 #[test]
@@ -118,7 +130,13 @@ fn explicit_short_and_long() {
 #[test]
 fn explicit_names_replace_field_name() {
     let err = ExplicitNames::from_args(["--archive"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::UnknownOption);
+    assert_eq!(
+        err,
+        Error::UnknownOption {
+            option: Opt::Long("archive"),
+            suggestion: None,
+        }
+    );
 }
 
 #[test]
@@ -130,5 +148,5 @@ fn raw_identifier_long_name() {
 #[test]
 fn missing_option_value() {
     let err = ExplicitNames::from_args(["--directory"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::MissingOptionValue("directory"));
+    assert_eq!(err, Error::MissingOptionValue("--directory <DIR>"));
 }
