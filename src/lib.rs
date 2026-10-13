@@ -6,11 +6,18 @@
 #[doc(hidden)]
 extern crate self as getargs_derive;
 
+#[cfg(feature = "std")]
+extern crate std;
+
+mod env;
 mod error;
 pub mod guide;
 mod suggest;
 
 pub use error::*;
+
+#[doc(hidden)]
+pub use env::{__EnvSupport, __env};
 
 #[doc(hidden)]
 pub use suggest::suggest as __suggest;

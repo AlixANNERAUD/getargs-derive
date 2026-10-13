@@ -52,6 +52,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 - [Flag Actions][guide-actions]: `SetTrue`, `SetFalse` and `Count` flags.
 - [Argument Aliases][guide-aliases]: hidden and visible long and short aliases.
 - [Default Values][guide-defaults]: `default_value` and `default_value_t`.
+- [Environment Variables][guide-env]: `env` fallbacks, `parse_with_env` and the `std` feature.
 - [Positional and Optional Arguments][guide-positionals]: positional arguments and `Option<T>` fields.
 - [Argument Relations][guide-relations]: `conflicts_with`, `requires`, `required_unless_present` and argument groups.
 - [Generated Help][guide-help]: the `HELP` constant, `-h`/`--help` and `disable_help_flag`.
@@ -75,6 +76,7 @@ Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
 [guide-actions]: docs/actions.md
 [guide-aliases]: docs/aliases.md
 [guide-defaults]: docs/defaults.md
+[guide-env]: docs/env.md
 [guide-positionals]: docs/positionals.md
 [guide-relations]: docs/relations.md
 [guide-help]: docs/help.md

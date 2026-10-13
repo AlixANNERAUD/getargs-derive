@@ -1,6 +1,7 @@
 mod action;
 mod aliases;
 mod defaults;
+mod env;
 mod help;
 mod kind;
 mod names;
@@ -25,6 +26,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::legacy("default", defaults::default),
     Key::new("default_value", defaults::default_value),
     Key::new("default_value_t", defaults::default_value_t),
+    Key::new("env", env::env),
     Key::new("flag", kind::flag),
     Key::new("group", relations::group),
     Key::new("help", help::help),
@@ -77,6 +79,7 @@ pub(crate) struct FieldModel {
     pub(crate) short_aliases: Vec<Alias<char>>,
     pub(crate) long_aliases: Vec<Alias<String>>,
     pub(crate) default: Option<DefaultValue>,
+    pub(crate) env: Option<String>,
     pub(crate) is_str: bool,
     pub(crate) help: Option<String>,
     pub(crate) value_name: String,
@@ -135,6 +138,7 @@ struct RawField {
     relations: Relations,
     short_aliases: Vec<Alias<char>>,
     long_aliases: Vec<Alias<String>>,
+    env: Option<(Option<String>, Span)>,
 }
 
 fn to_kebab_case(name: &str) -> String {
@@ -376,6 +380,20 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         FieldKind::Option
     };
 
+    let env = raw.env.map(|(value, span)| {
+        let env = value.unwrap_or_else(|| name.to_uppercase());
+        if let Err(error) = env::validate_env(&env, span) {
+            errors.push(error);
+        }
+        if let FieldKind::Flag(_) = kind {
+            errors.push(syn::Error::new(
+                span,
+                "`env` cannot be used on flags; it is only supported on options and positional arguments",
+            ));
+        }
+        env
+    });
+
     let value_name = raw
         .value_name
         .map(|(value, _)| value)
@@ -394,6 +412,7 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         short_aliases: raw.short_aliases,
         long_aliases: raw.long_aliases,
         default: raw.default.map(|(_, value)| value),
+        env,
         help: raw.help.or_else(|| short_doc(&field.attrs)),
         value_name,
         relations: raw.relations,

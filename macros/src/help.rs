@@ -49,6 +49,9 @@ fn description(field: &FieldModel) -> String {
     if let Some(help) = field.help.as_deref().filter(|help| !help.is_empty()) {
         parts.push(help.to_owned());
     }
+    if let Some(env) = &field.env {
+        parts.push(format!("[env: {env}=]"));
+    }
     if let (Some(default), FieldKind::Positional | FieldKind::Option) =
         (&field.default, &field.kind)
     {

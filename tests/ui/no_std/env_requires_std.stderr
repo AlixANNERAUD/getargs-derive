@@ -1,0 +1,16 @@
+error[E0277]: reading `env` fallbacks from the process environment requires the `std` feature of `getargs-derive`
+  --> tests/ui/no_std/env_requires_std.rs:10:28
+   |
+10 |     let _ = Cli::from_args(["--port", "80"].into_iter());
+   |             -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `parse` and `from_args` read the process environment
+   |             |
+   |             required by a bound introduced by this call
+   |
+   = help: the trait `getargs_derive::__EnvSupport` is not implemented for `std::array::IntoIter<&str, 2>`
+   = note: enable the `std` feature of `getargs-derive`, or call `parse_with_env` or `from_args_with_env` with a lookup function
+note: required by a bound in `Cli::from_args`
+  --> tests/ui/no_std/env_requires_std.rs:3:10
+   |
+ 3 | #[derive(GetArgs)]
+   |          ^^^^^^^ required by this bound in `Cli::from_args`
+   = note: this error originates in the derive macro `GetArgs` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -17,6 +17,10 @@ pub mod aliases {}
 pub mod defaults {}
 
 #[doc = include_str!("../docs/rustdoc-links.md")]
+#[doc = include_str!("../docs/env.md")]
+pub mod env {}
+
+#[doc = include_str!("../docs/rustdoc-links.md")]
 #[doc = include_str!("../docs/positionals.md")]
 pub mod positionals {}
 

@@ -19,6 +19,12 @@ description = "A derive macro for the getargs crate — auto-generate CLI argume
 keywords = ["cli", "arguments", "args", "parse", "derive"]
 categories = ["command-line-interface"]
 
+[features]
+std = []
+
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 getargs-derive-macros = { version = "=0.1.0", path = "./macros" }
 
