@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+rust-version.workspace = true
 description = "Internal implementation detail of getargs-derive. Not meant for direct use; depend on getargs-derive instead."
 
 [features]
