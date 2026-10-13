@@ -1,0 +1,5 @@
+error: `required_unless_present` requires an optional field; change the type of `config` to `Option<T>` or give it a default
+ --> tests/ui/relations_required_unless_required_field.rs:5:43
+  |
+5 |     #[arg(long, required_unless_present = "stdin")]
+  |                                           ^^^^^^^

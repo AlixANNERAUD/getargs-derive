@@ -1,0 +1,11 @@
+error: duplicate group `mode`
+ --> tests/ui/relations_invalid_group.rs:4:42
+  |
+4 | #[command(group(id = "mode"), group(id = "mode"), group(id = "unused", required))]
+  |                                          ^^^^^^
+
+error: group `unused` has no arguments; add `#[arg(group = "unused")]` to its fields
+ --> tests/ui/relations_invalid_group.rs:4:62
+  |
+4 | #[command(group(id = "mode"), group(id = "mode"), group(id = "unused", required))]
+  |                                                              ^^^^^^^^

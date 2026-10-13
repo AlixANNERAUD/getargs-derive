@@ -1,0 +1,41 @@
+error: `group` requires an `id`, e.g. `group(id = "mode", required)`
+ --> tests/ui/relations_group_syntax.rs:4:11
+  |
+4 | #[command(group(required))]
+  |           ^^^^^^^^^^^^^^^
+
+error: unknown `group` attribute `exclusive`; supported attributes are: `id`, `multiple`, `required`
+ --> tests/ui/relations_group_syntax.rs:5:27
+  |
+5 | #[command(group(id = "a", exclusive))]
+  |                           ^^^^^^^^^
+
+error: `group` expects a list, e.g. `group(id = "mode", required)`
+ --> tests/ui/relations_group_syntax.rs:6:11
+  |
+6 | #[command(group = "b")]
+  |           ^^^^^
+
+error: `multiple` does not take a value
+ --> tests/ui/relations_group_syntax.rs:7:27
+  |
+7 | #[command(group(id = "c", multiple = true))]
+  |                           ^^^^^^^^
+
+error: duplicate `group` attribute
+  --> tests/ui/relations_group_syntax.rs:10:11
+   |
+10 |     #[arg(group = "c")]
+   |           ^^^^^^^^^^^
+
+error: `conflicts_with` cannot be empty
+  --> tests/ui/relations_group_syntax.rs:13:28
+   |
+13 |     #[arg(conflicts_with = "")]
+   |                            ^^
+
+error: `requires` expects a string literal, e.g. `requires = "other"`
+  --> tests/ui/relations_group_syntax.rs:14:22
+   |
+14 |     #[arg(requires = 1)]
+   |                      ^

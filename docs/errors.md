@@ -43,6 +43,9 @@ assert_eq!(error.to_string(), "the following required argument was not provided:
 | `UnexpectedValue(Opt<'a>)`                            | A value was attached to a flag (`--verbose=yes`).                                                           | `unexpected value for '--verbose': it does not take a value`      |
 | `MissingOptionValue(&'static str)`                    | An option was given without its value (`--output` at the end of the arguments).                            | `a value is required for '--output <OUTPUT>' but none was supplied` |
 | `InvalidValue { name: &'static str, value: &'a str }` | A value or `default_value` could not be parsed into the field type (`abc` for a `u32`).                    | `invalid value 'abc' for '--port <PORT>'`                         |
+| `ArgumentConflict { name, other }`                    | Two arguments that cannot be used together were given (`conflicts_with` or an exclusive group). See [Argument Relations][guide-relations]. | `the argument '--quiet' cannot be used with '--verbose'` |
+| `MissingRequiredArgument { name, required_by }`       | An argument was given without an argument it `requires`.                                                    | `the following required argument was not provided: --output <OUTPUT> (required by '--compress')` |
+| `MissingOneOf(&'static [&'static str])`               | None of a set of arguments was given (`required_unless_present` or a `required` group).                     | `the following required arguments were not provided: <--config <CONFIG>\|--stdin>` |
 | `InvalidArguments`                                    | `getargs` reported an error kind this crate does not recognise (a future `getargs` release). Never returned with known `getargs` 0.5 releases. | `the arguments could not be parsed` |
 | `Help(&'static str)`                                  | Not a failure: `-h` or `--help` was given. Carries the generated help text. See [Generated Help][guide-help]. | the help text                                                   |
 | `Version(&'static str)`                               | Not a failure: `-V` or `--version` was given with `#[command(version)]`. Carries the version line (`VERSION_TEXT`). See [Version Flag][guide-version]. | the version line                     |
@@ -79,4 +82,5 @@ The `Error` enum was redesigned to report the offending argument:
 `Display` messages now follow Clap's wording instead of the previous capitalised messages.
 
 [guide-help]: help.md
+[guide-relations]: relations.md
 [guide-version]: version.md

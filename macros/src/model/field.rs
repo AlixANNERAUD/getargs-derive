@@ -3,6 +3,7 @@ mod defaults;
 mod help;
 mod kind;
 mod names;
+mod relations;
 
 use super::attr::{Key, dispatch};
 use super::doc::short_doc;
@@ -11,17 +12,25 @@ use super::types::{is_bool_type, is_count_type, is_str_reference_type, option_in
 pub(crate) use action::FlagAction;
 use defaults::set_default;
 use proc_macro2::Span;
+pub(crate) use relations::Relations;
 use syn::{Expr, Field, Ident, LitStr, Meta, Type, ext::IdentExt, spanned::Spanned};
 
 const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("action", action::action),
+    Key::new("conflicts_with", relations::conflicts_with),
     Key::legacy("default", defaults::default),
     Key::new("default_value", defaults::default_value),
     Key::new("default_value_t", defaults::default_value_t),
     Key::new("flag", kind::flag),
+    Key::new("group", relations::group),
     Key::new("help", help::help),
     Key::new("long", names::long),
     Key::new("positional", kind::positional),
+    Key::new(
+        "required_unless_present",
+        relations::required_unless_present,
+    ),
+    Key::new("requires", relations::requires),
     Key::new("short", names::short),
     Key::new("value_name", help::value_name),
 ];
@@ -59,6 +68,7 @@ pub(crate) struct FieldModel {
     pub(crate) is_str: bool,
     pub(crate) help: Option<String>,
     pub(crate) value_name: String,
+    pub(crate) relations: Relations,
     pub(super) short_span: Span,
     pub(super) long_span: Span,
 }
@@ -110,6 +120,7 @@ struct RawField {
     help: Option<String>,
     value_name: Option<(String, Span)>,
     action: Option<(FlagAction, syn::Path)>,
+    relations: Relations,
 }
 
 fn to_kebab_case(name: &str) -> String {
@@ -349,6 +360,7 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         default: raw.default.map(|(_, value)| value),
         help: raw.help.or_else(|| short_doc(&field.attrs)),
         value_name,
+        relations: raw.relations,
         short_span,
         long_span,
     })
