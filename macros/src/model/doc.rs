@@ -41,3 +41,13 @@ pub(super) fn short_doc(attrs: &[Attribute]) -> Option<String> {
     }
     Some(text)
 }
+
+pub(super) fn long_doc(attrs: &[Attribute]) -> Option<String> {
+    let lines = doc_lines(attrs);
+    let paragraphs: Vec<String> = lines
+        .split(String::is_empty)
+        .filter(|paragraph| !paragraph.is_empty())
+        .map(|paragraph| paragraph.join(" "))
+        .collect();
+    (paragraphs.len() > 1).then(|| paragraphs.join("\n\n"))
+}

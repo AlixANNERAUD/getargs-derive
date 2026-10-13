@@ -1,4 +1,6 @@
+mod layout;
 mod text;
+mod wrap;
 
 use crate::model::{ContainerModel, DefaultValue, FieldKind, FieldModel, FlagAction};
 use proc_macro2::TokenStream;
@@ -6,9 +8,34 @@ use quote::{ToTokens, quote};
 use syn::{Expr, ExprLit, Lit, UnOp, ext::IdentExt};
 use text::{Segment, Text};
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Mode {
+    Short,
+    Long,
+}
+
 struct Entry {
     label: String,
     description: Text,
+}
+
+const NEXT_LINE_INDENT: usize = 10;
+
+struct Style {
+    mode: Mode,
+    term_width: Option<usize>,
+}
+
+impl Style {
+    fn next_line(&self, taken: usize, description: &str) -> bool {
+        match (self.mode, self.term_width) {
+            (Mode::Long, _) => true,
+            (Mode::Short, None) => false,
+            (Mode::Short, Some(width)) => {
+                width >= taken && taken * 5 > width * 2 && wrap::width(description) > width - taken
+            }
+        }
+    }
 }
 
 pub(crate) fn expr_text(expr: &Expr) -> String {
@@ -82,11 +109,12 @@ fn possible_values(field: &FieldModel) -> Option<Segment> {
     Some(Segment::Text(values.join(", ")))
 }
 
-fn description(field: &FieldModel) -> Text {
+fn description(field: &FieldModel, mode: Mode) -> Text {
+    let help = match mode {
+        Mode::Short => field.help.as_deref(),
+        Mode::Long => field.long_help.as_deref().or(field.help.as_deref()),
+    };
     let mut parts = Vec::new();
-    if let Some(help) = field.help.as_deref().filter(|help| !help.is_empty()) {
-        parts.push(vec![Segment::Text(help.to_owned())]);
-    }
     if let Some(env) = &field.env {
         parts.push(vec![Segment::Text(format!("[env: {env}=]"))]);
     }
@@ -135,6 +163,15 @@ fn description(field: &FieldModel) -> Text {
         ]);
     }
     let mut text = Text::default();
+    if let Some(help) = help.filter(|help| !help.is_empty()) {
+        text.push_str(help);
+        if !parts.is_empty() {
+            text.push_str(match mode {
+                Mode::Short => " ",
+                Mode::Long => "\n\n",
+            });
+        }
+    }
     for (index, part) in parts.into_iter().enumerate() {
         if index > 0 {
             text.push_str(" ");
@@ -169,7 +206,7 @@ fn option_label(field: &FieldModel) -> String {
     label
 }
 
-fn render_section(output: &mut Text, title: &str, entries: Vec<Entry>) {
+fn render_section(output: &mut Text, title: &str, entries: Vec<Entry>, style: &Style) {
     if entries.is_empty() {
         return;
     }
@@ -178,87 +215,176 @@ fn render_section(output: &mut Text, title: &str, entries: Vec<Entry>) {
         .map(|entry| entry.label.chars().count())
         .max()
         .unwrap_or(0);
-    let indent = " ".repeat(width + 4);
+    let taken = width + 4;
+    let indent = " ".repeat(taken);
+    let next_line_indent = " ".repeat(NEXT_LINE_INDENT);
 
     output.push_str("\n\n");
     output.push_str(title);
     output.push_str(":");
-    for entry in entries {
+    for (index, entry) in entries.into_iter().enumerate() {
+        if index > 0 && style.mode == Mode::Long {
+            output.push_str("\n");
+        }
         output.push_str("\n  ");
         if entry.description.is_empty() {
             output.push_str(&entry.label);
             continue;
         }
-        output.push_str(&format!("{:<width$}  ", entry.label));
+        if let Some(description) = entry.description.as_static() {
+            if style.next_line(taken, description) {
+                let text = wrap::wrap(
+                    description,
+                    style
+                        .term_width
+                        .map(|width| width.saturating_sub(NEXT_LINE_INDENT)),
+                );
+                output.push_str(&entry.label);
+                output.push_str("\n");
+                output.push_str(&next_line_indent);
+                output.push_str(&wrap::indent(&text, &next_line_indent));
+            } else {
+                let text = wrap::wrap(
+                    description,
+                    style.term_width.map(|width| width.saturating_sub(taken)),
+                );
+                output.push_str(&format!("{:<width$}  ", entry.label));
+                output.push_str(&wrap::indent(&text, &indent));
+            }
+            continue;
+        }
+        let indent = if style.mode == Mode::Long {
+            output.push_str(&entry.label);
+            output.push_str("\n");
+            output.push_str(&next_line_indent);
+            &next_line_indent
+        } else {
+            output.push_str(&format!("{:<width$}  ", entry.label));
+            &indent
+        };
         for segment in entry.description.segments() {
-            let Segment::Text(description) = segment else {
-                output.push(segment);
-                continue;
-            };
-            for (index, line) in description.lines().enumerate() {
-                if index > 0 {
-                    output.push_str("\n");
-                    if !line.is_empty() {
-                        output.push_str(&indent);
-                    }
-                }
-                output.push_str(line);
+            match segment {
+                Segment::Text(text) => output.push_str(&wrap::indent(&text, indent)),
+                other => output.push(other),
             }
         }
     }
 }
 
-pub(crate) fn help_text(container: &ContainerModel, fields: &[FieldModel]) -> TokenStream {
-    let mut arguments = Vec::new();
-    let mut options = Vec::new();
-    let mut usage = String::new();
+pub(crate) fn has_long_help(container: &ContainerModel, fields: &[FieldModel]) -> bool {
+    container.long_about.is_some()
+        || fields
+            .iter()
+            .any(|field| !field.hide && field.long_help.is_some())
+}
 
-    for field in fields {
+fn help_flag_description(mode: Mode, long_help: bool) -> &'static str {
+    match (mode, long_help) {
+        (_, false) => "Print help",
+        (Mode::Short, true) => "Print help (see more with '--help')",
+        (Mode::Long, true) => "Print help (see a summary with '-h')",
+    }
+}
+
+fn push_paragraph(output: &mut String, text: Option<&str>, style: &Style) {
+    if let Some(text) = text.filter(|text| !text.is_empty()) {
+        output.push_str(&wrap::wrap(text, style.term_width));
+        output.push_str("\n\n");
+    }
+}
+
+pub(crate) fn help_text(
+    container: &ContainerModel,
+    fields: &[FieldModel],
+    mode: Mode,
+) -> TokenStream {
+    let style = Style {
+        mode,
+        term_width: container.max_term_width,
+    };
+    let mut usage = String::new();
+    let mut has_options = false;
+
+    for field in fields.iter().filter(|field| !field.hide) {
         match field.kind {
             FieldKind::Positional => {
-                let label = positional_label(field);
                 usage.push(' ');
-                usage.push_str(&label);
-                arguments.push(Entry {
-                    label,
-                    description: description(field),
-                });
+                usage.push_str(&positional_label(field));
             }
-            FieldKind::Flag(_) | FieldKind::Option => options.push(Entry {
-                label: option_label(field),
-                description: description(field),
-            }),
+            FieldKind::Flag(_) | FieldKind::Option => has_options = true,
         }
     }
 
-    if !container.disable_help_flag {
-        options.push(Entry {
-            label: "-h, --help".to_owned(),
-            description: plain("Print help"),
-        });
+    let mut sections: Vec<(&str, Vec<Entry>)> = layout::sections(fields)
+        .into_iter()
+        .map(|section| {
+            let entries = section
+                .fields
+                .into_iter()
+                .map(|field| Entry {
+                    label: match field.kind {
+                        FieldKind::Positional => positional_label(field),
+                        FieldKind::Flag(_) | FieldKind::Option => option_label(field),
+                    },
+                    description: description(field, mode),
+                })
+                .collect();
+            (section.title, entries)
+        })
+        .collect();
+
+    if let Some((_, options)) = sections
+        .iter_mut()
+        .find(|(title, _)| *title == layout::OPTIONS)
+    {
+        if !container.disable_help_flag {
+            options.push(Entry {
+                label: "-h, --help".to_owned(),
+                description: plain(help_flag_description(
+                    mode,
+                    has_long_help(container, fields),
+                )),
+            });
+            has_options = true;
+        }
+
+        if container.version.is_some() {
+            options.push(Entry {
+                label: "-V, --version".to_owned(),
+                description: plain("Print version"),
+            });
+            has_options = true;
+        }
     }
 
-    if container.version.is_some() {
-        options.push(Entry {
-            label: "-V, --version".to_owned(),
-            description: plain("Print version"),
-        });
-    }
-
+    let about = match mode {
+        Mode::Short => container.about.as_deref(),
+        Mode::Long => container
+            .long_about
+            .as_deref()
+            .or(container.about.as_deref()),
+    };
     let mut prefix = String::new();
-    if let Some(about) = container.about.as_deref().filter(|about| !about.is_empty()) {
-        prefix.push_str(about);
-        prefix.push_str("\n\n");
-    }
+    push_paragraph(&mut prefix, container.before_help.as_deref(), &style);
+    push_paragraph(&mut prefix, about, &style);
     prefix.push_str("Usage: ");
 
     let mut suffix = Text::default();
-    if !options.is_empty() {
+    if has_options {
         suffix.push_str(" [OPTIONS]");
     }
     suffix.push_str(&usage);
-    render_section(&mut suffix, "Arguments", arguments);
-    render_section(&mut suffix, "Options", options);
+    for (title, entries) in sections {
+        render_section(&mut suffix, title, entries, &style);
+    }
+    if let Some(after) = container
+        .after_help
+        .as_deref()
+        .filter(|text| !text.is_empty())
+    {
+        suffix.push_str("\n\n");
+        suffix.push_str(&wrap::wrap(after, style.term_width));
+    }
 
     let name = command_name(container);
 

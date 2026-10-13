@@ -1,0 +1,29 @@
+error: `max_term_width` expects a positive integer literal, e.g. `max_term_width = 80`
+ --> tests/ui/help_command_attributes.rs:4:28
+  |
+4 | #[command(max_term_width = 0)]
+  |                            ^
+
+error: `max_term_width` expects a positive integer literal, e.g. `max_term_width = 80`
+ --> tests/ui/help_command_attributes.rs:5:28
+  |
+5 | #[command(max_term_width = "80")]
+  |                            ^^^^
+
+error: `long_about` expects a string literal, e.g. `long_about = "Does things.\n\nIn more detail."`
+ --> tests/ui/help_command_attributes.rs:6:24
+  |
+6 | #[command(long_about = 1)]
+  |                        ^
+
+error: `before_help` requires a value, e.g. `before_help = "Read this first"`
+ --> tests/ui/help_command_attributes.rs:7:11
+  |
+7 | #[command(before_help)]
+  |           ^^^^^^^^^^^
+
+error: duplicate `after_help` attribute
+ --> tests/ui/help_command_attributes.rs:8:31
+  |
+8 | #[command(after_help = "One", after_help = "Two")]
+  |                               ^^^^^^^^^^^^^^^^^^

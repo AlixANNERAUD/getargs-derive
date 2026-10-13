@@ -1,6 +1,7 @@
 mod action;
 mod aliases;
 mod defaults;
+mod display;
 mod env;
 mod help;
 mod names;
@@ -9,7 +10,7 @@ mod validation;
 mod value_enum;
 
 use super::attr::{Key, dispatch};
-use super::doc::short_doc;
+use super::doc::{long_doc, short_doc};
 use super::errors::Errors;
 use super::types::{is_bool_type, is_count_type, is_str_reference_type, option_inner_type};
 pub(crate) use action::FlagAction;
@@ -27,10 +28,14 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("conflicts_with", relations::conflicts_with),
     Key::new("default_value", defaults::default_value),
     Key::new("default_value_t", defaults::default_value_t),
+    Key::new("display_order", display::display_order),
     Key::new("env", env::env),
     Key::new("group", relations::group),
     Key::new("help", help::help),
+    Key::new("help_heading", display::help_heading),
+    Key::new("hide", display::hide),
     Key::new("long", names::long),
+    Key::new("long_help", display::long_help),
     Key::new("possible_values", validation::possible_values),
     Key::new(
         "required_unless_present",
@@ -89,6 +94,10 @@ pub(crate) struct FieldModel {
     pub(crate) value_enum: bool,
     pub(crate) value_parser: Option<ValueParser>,
     pub(crate) possible_values: Vec<String>,
+    pub(crate) hide: bool,
+    pub(crate) help_heading: Option<String>,
+    pub(crate) display_order: Option<usize>,
+    pub(crate) long_help: Option<String>,
     pub(super) short_span: Span,
     pub(super) long_span: Span,
 }
@@ -141,6 +150,10 @@ struct RawField {
     value_enum: Option<Span>,
     value_parser: Option<ValueParser>,
     possible_values: Option<PossibleValues>,
+    hide: Option<()>,
+    help_heading: Option<String>,
+    display_order: Option<(usize, Span)>,
+    long_help: Option<String>,
 }
 
 fn to_kebab_case(name: &str) -> String {
@@ -341,6 +354,15 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         ));
     }
 
+    if let Some((_, span)) = &raw.display_order
+        && !named
+    {
+        errors.push(syn::Error::new(
+            *span,
+            "`display_order` cannot be used on positional arguments, which are listed in the order they are parsed",
+        ));
+    }
+
     let kind = if !named {
         FieldKind::Positional
     } else if let Some((action, _)) = &raw.action {
@@ -403,6 +425,10 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
             .possible_values
             .map(|values| values.values)
             .unwrap_or_default(),
+        hide: raw.hide.is_some(),
+        help_heading: raw.help_heading,
+        display_order: raw.display_order.map(|(order, _)| order),
+        long_help: raw.long_help.or_else(|| long_doc(&field.attrs)),
         short_span,
         long_span,
     })

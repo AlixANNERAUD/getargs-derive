@@ -17,6 +17,10 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | `#[arg(value_parser = parse)]`    | Converts the value with a function `fn(&str) -> Result<T, E>` instead of `FromStr`. See [Value Validation][guide-validation]. |
 | `#[arg(value_parser = 1..=64)]`   | Rejects integer values outside the range. See [Value Validation][guide-validation].                     |
 | `#[arg(possible_values = ["a", "b"])]` | Rejects values that are not one of the strings, and lists them in the help. See [Value Validation][guide-validation]. |
+| `#[arg(long_help = "text")]`      | Description shown in the long help (`--help`). Overrides the field's full doc comment. See [Generated Help][guide-help]. |
+| `#[arg(hide)]`                    | Omits the argument from the generated help. It is still parsed.                                         |
+| `#[arg(help_heading = "Name")]`   | Lists the argument in a custom `Name:` section of the generated help.                                   |
+| `#[arg(display_order = N)]`       | Position of a named option within its help section.                                                     |
 | `#[arg(action = Count)]`          | Flag counting its occurrences on an integer field. See [Flag Actions][guide-actions].                   |
 | `#[arg(action = SetFalse)]`       | Flag on a `bool` field that defaults to `true` and is set to `false` by its presence.                   |
 | `#[arg(action = SetTrue)]`        | Explicit form of the default `bool` flag behaviour.                                                     |
@@ -52,6 +56,10 @@ The struct accepts a `#[command(...)]` attribute supporting this Clap-like subse
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `#[command(name = "tool")]`         | Program name shown in the usage line. Defaults to the package name (`CARGO_PKG_NAME`) of the crate deriving `GetArgs`. |
 | `#[command(about = "text")]`        | Description shown at the top of the help. Overrides the struct's doc comment.                                 |
+| `#[command(long_about = "text")]`   | Description shown at the top of the long help (`--help`). Overrides the struct's full doc comment. See [Generated Help][guide-help]. |
+| `#[command(before_help = "text")]`  | Text shown before everything else in the help.                                                                |
+| `#[command(after_help = "text")]`   | Text shown after everything else in the help.                                                                 |
+| `#[command(max_term_width = N)]`    | Wraps the help at `N` columns, at compile time.                                                               |
 | `#[command(version)]`               | Enables `-V`/`--version` with the package version (`CARGO_PKG_VERSION`) of the crate deriving `GetArgs`. See [Version Flag][guide-version]. |
 | `#[command(version = "1.2.3")]`     | Enables `-V`/`--version` with an explicit version.                                                            |
 | `#[command(disable_help_flag)]`     | Disables `-h`/`--help` handling: they become ordinary unknown options, and fields may use them. See [Generated Help][guide-help]. |

@@ -14,8 +14,8 @@ use syn::{DeriveInput, parse_macro_input};
 /// Derive macro for the [`getargs`](https://crates.io/crates/getargs) crate.
 ///
 /// Generates a `parse` method on your struct that consumes CLI arguments via
-/// `getargs::Options` and populates the struct's fields, along with a
-/// `HELP` constant holding the generated help text.
+/// `getargs::Options` and populates the struct's fields, along with the
+/// `HELP` and `LONG_HELP` constants holding the generated short and long help texts.
 ///
 /// # Attribute syntax
 ///

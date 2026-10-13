@@ -1,0 +1,41 @@
+error: `display_order` cannot be used on positional arguments, which are listed in the order they are parsed
+ --> tests/ui/help_arg_attributes.rs:5:27
+  |
+5 |     #[arg(display_order = 1)]
+  |                           ^
+
+error: `display_order` expects a non-negative integer literal, e.g. `display_order = 1`
+ --> tests/ui/help_arg_attributes.rs:7:33
+  |
+7 |     #[arg(long, display_order = "1")]
+  |                                 ^^^
+
+error: `display_order` expects a non-negative integer literal, e.g. `display_order = 1`
+ --> tests/ui/help_arg_attributes.rs:9:33
+  |
+9 |     #[arg(long, display_order = -1)]
+  |                                 ^
+
+error: `help_heading` cannot be empty
+  --> tests/ui/help_arg_attributes.rs:11:32
+   |
+11 |     #[arg(long, help_heading = " ")]
+   |                                ^^^
+
+error: `hide` does not take a value
+  --> tests/ui/help_arg_attributes.rs:13:17
+   |
+13 |     #[arg(long, hide = true)]
+   |                 ^^^^
+
+error: `long_help` expects a string literal, e.g. `long_help = "Print more output.\n\nRepeat for even more."`
+  --> tests/ui/help_arg_attributes.rs:15:29
+   |
+15 |     #[arg(long, long_help = 3)]
+   |                             ^
+
+error: duplicate `hide` attribute
+  --> tests/ui/help_arg_attributes.rs:17:23
+   |
+17 |     #[arg(long, hide, hide)]
+   |                       ^^^^

@@ -1,5 +1,5 @@
-error: unknown `command` attribute `long_about`; supported attributes are: `about`, `disable_help_flag`, `group`, `name`, `version`
+error: unknown `command` attribute `disable_version_flag`; supported attributes are: `about`, `after_help`, `before_help`, `disable_help_flag`, `group`, `long_about`, `max_term_width`, `name`, `version`
  --> tests/ui/unknown_command_key.rs:4:26
   |
-4 | #[command(name = "tool", long_about = "More")]
-  |                          ^^^^^^^^^^
+4 | #[command(name = "tool", disable_version_flag)]
+  |                          ^^^^^^^^^^^^^^^^^^^^
