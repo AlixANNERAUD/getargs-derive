@@ -13,8 +13,10 @@ mod env;
 mod error;
 pub mod guide;
 mod suggest;
+mod value_enum;
 
 pub use error::*;
+pub use value_enum::{ParseValueEnumError, ValueEnum};
 
 #[doc(hidden)]
 pub use env::{__EnvSupport, __env};
@@ -22,4 +24,10 @@ pub use env::{__EnvSupport, __env};
 #[doc(hidden)]
 pub use suggest::suggest as __suggest;
 
-pub use getargs_derive_macros::GetArgs;
+#[doc(hidden)]
+pub use value_enum::{
+    HelpPart as __HelpPart, help_bytes as __help_bytes, help_len as __help_len,
+    help_str as __help_str, value_name as __value_name,
+};
+
+pub use getargs_derive_macros::{GetArgs, ValueEnum};

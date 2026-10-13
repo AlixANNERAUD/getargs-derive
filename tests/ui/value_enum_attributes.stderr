@@ -1,0 +1,65 @@
+error: `#[value(...)]` is only supported on variants
+ --> tests/ui/value_enum_attributes.rs:4:1
+  |
+4 | #[value(name = "mode")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: unknown `value` attribute `rename`; supported attributes are: `alias`, `name`
+ --> tests/ui/value_enum_attributes.rs:6:13
+  |
+6 |     #[value(rename = "quick")]
+  |             ^^^^^^
+
+error: duplicate `name` attribute
+ --> tests/ui/value_enum_attributes.rs:8:28
+  |
+8 |     #[value(name = "slow", name = "slower")]
+  |                            ^^^^^^^^^^^^^^^
+
+error: `name` cannot be empty
+  --> tests/ui/value_enum_attributes.rs:10:20
+   |
+10 |     #[value(name = "")]
+   |                    ^^
+
+error: `alias` requires a value, e.g. `alias = "quick"`
+  --> tests/ui/value_enum_attributes.rs:12:13
+   |
+12 |     #[value(alias)]
+   |             ^^^^^
+
+error: expected `#[value(...)]`, e.g. `#[value(name = "fast")]`
+  --> tests/ui/value_enum_attributes.rs:14:5
+   |
+14 |     #[value]
+   |     ^^^^^^^^
+
+error: value `fast` is already used by variant `Quick`
+  --> tests/ui/value_enum_attributes.rs:22:5
+   |
+22 |     Fast,
+   |     ^^^^
+
+error: value `quick` is already used by variant `Quick`
+  --> tests/ui/value_enum_attributes.rs:23:20
+   |
+23 |     #[value(name = "quick")]
+   |                    ^^^^^^^
+
+error: ValueEnum cannot be derived for generic enums
+  --> tests/ui/value_enum_attributes.rs:28:13
+   |
+28 | enum Generic<T> {
+   |             ^^^
+
+error: ValueEnum variants cannot have fields; `Marker` must be a unit variant
+  --> tests/ui/value_enum_attributes.rs:30:11
+   |
+30 |     Marker(T),
+   |           ^^^
+
+error: ValueEnum requires at least one variant
+  --> tests/ui/value_enum_attributes.rs:34:6
+   |
+34 | enum Empty {}
+   |      ^^^^^

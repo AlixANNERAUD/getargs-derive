@@ -13,6 +13,10 @@ pub mod actions {}
 pub mod aliases {}
 
 #[doc = include_str!("../docs/rustdoc-links.md")]
+#[doc = include_str!("../docs/value_enum.md")]
+pub mod value_enum {}
+
+#[doc = include_str!("../docs/rustdoc-links.md")]
 #[doc = include_str!("../docs/defaults.md")]
 pub mod defaults {}
 

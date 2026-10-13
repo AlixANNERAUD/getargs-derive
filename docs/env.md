@@ -30,7 +30,7 @@ assert_eq!(server.workers, None);
 
 The value is taken from the command line first, then from the environment variable, then from the [default][guide-defaults].
 An `Option<T>` field is `None` only when it is absent from both the command line and the environment, and a field without a default is reported as missing only when the variable is not set either.
-The variable is only read when the argument is absent from the command line, and its value is used as-is for `&str` fields, otherwise parsed with `FromStr`.
+The variable is only read when the argument is absent from the command line, and its value is used as-is for `&str` fields, parsed with `ValueEnum::from_value` for `value_enum` fields, and otherwise parsed with `FromStr`.
 If it does not parse, `parse` returns `Error::InvalidValue` with the argument name followed by the variable, e.g. `"--port <PORT> [env: SERVER_PORT]"`.
 
 `env` is not supported on flags. This is a Clap-inspired subset: Clap's `hide_env`, `hide_env_values` and boolean parsing of environment values for flags are not supported.

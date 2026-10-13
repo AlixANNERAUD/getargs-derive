@@ -6,6 +6,7 @@
 mod expand;
 mod help;
 mod model;
+mod value_enum;
 
 use proc_macro::TokenStream;
 use syn::{DeriveInput, parse_macro_input};
@@ -25,6 +26,22 @@ pub fn derive_get_args(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     match model::parse(&input) {
         Ok((container, fields)) => expand::expand(&input, &container, &fields).into(),
+        Err(error) => error.to_compile_error().into(),
+    }
+}
+
+/// Derive macro implementing `getargs_derive::ValueEnum` and `FromStr` for an enum with unit
+/// variants.
+///
+/// Each variant is accepted under its kebab-cased name, which `#[value(name = "...")]` overrides,
+/// and under every `#[value(alias = "...")]`.
+///
+/// See the [value enum guide](getargs_derive::guide::value_enum) for details.
+#[proc_macro_derive(ValueEnum, attributes(value))]
+pub fn derive_value_enum(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    match value_enum::parse(&input) {
+        Ok(variants) => value_enum::expand(&input, &variants).into(),
         Err(error) => error.to_compile_error().into(),
     }
 }

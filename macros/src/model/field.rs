@@ -6,6 +6,7 @@ mod help;
 mod kind;
 mod names;
 mod relations;
+mod value_enum;
 
 use super::attr::{Key, dispatch};
 use super::doc::short_doc;
@@ -40,6 +41,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("short", names::short),
     Key::new("short_alias", aliases::short_alias),
     Key::new("short_aliases", aliases::short_aliases),
+    Key::new("value_enum", value_enum::value_enum),
     Key::new("value_name", help::value_name),
     Key::new("visible_alias", aliases::visible_alias),
     Key::new("visible_aliases", aliases::visible_aliases),
@@ -84,6 +86,7 @@ pub(crate) struct FieldModel {
     pub(crate) help: Option<String>,
     pub(crate) value_name: String,
     pub(crate) relations: Relations,
+    pub(crate) value_enum: bool,
     pub(super) short_span: Span,
     pub(super) long_span: Span,
 }
@@ -139,6 +142,7 @@ struct RawField {
     short_aliases: Vec<Alias<char>>,
     long_aliases: Vec<Alias<String>>,
     env: Option<(Option<String>, Span)>,
+    value_enum: Option<Span>,
 }
 
 fn to_kebab_case(name: &str) -> String {
@@ -370,6 +374,16 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         ));
     }
 
+    if let Some(span) = raw.value_enum
+        && (is_bool || raw.action.is_some())
+        && named
+    {
+        errors.push(syn::Error::new(
+            span,
+            "`value_enum` cannot be used on flags because they do not take a value",
+        ));
+    }
+
     let kind = if !named {
         FieldKind::Positional
     } else if let Some((action, _)) = &raw.action {
@@ -416,6 +430,7 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         help: raw.help.or_else(|| short_doc(&field.attrs)),
         value_name,
         relations: raw.relations,
+        value_enum: raw.value_enum.is_some(),
         short_span,
         long_span,
     })

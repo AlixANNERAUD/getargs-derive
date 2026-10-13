@@ -10,7 +10,17 @@ pub(super) fn env_lookup(field: &FieldModel) -> Option<TokenStream> {
     let env = field.env.as_deref()?;
     let value_ident = format_ident!("__value_{}", field.name);
     let error_name = format!("{} [env: {env}]", field.error_name());
-    let parsed = if field.is_str {
+    let value_ty = &field.value_ty;
+    let parsed = if field.value_enum {
+        quote! {
+            <#value_ty as getargs_derive::ValueEnum>::from_value(value).ok_or(
+                getargs_derive::Error::InvalidValue {
+                    name: #error_name,
+                    value,
+                },
+            )?
+        }
+    } else if field.is_str {
         quote! { value }
     } else {
         quote! {

@@ -1,4 +1,4 @@
-error: unknown `arg` attribute `global`; supported attributes are: `action`, `alias`, `aliases`, `conflicts_with`, `default` (legacy), `default_value`, `default_value_t`, `env`, `flag`, `group`, `help`, `long`, `positional`, `required_unless_present`, `requires`, `short`, `short_alias`, `short_aliases`, `value_name`, `visible_alias`, `visible_aliases`, `visible_short_alias`, `visible_short_aliases`
+error: unknown `arg` attribute `global`; supported attributes are: `action`, `alias`, `aliases`, `conflicts_with`, `default` (legacy), `default_value`, `default_value_t`, `env`, `flag`, `group`, `help`, `long`, `positional`, `required_unless_present`, `requires`, `short`, `short_alias`, `short_aliases`, `value_enum`, `value_name`, `visible_alias`, `visible_aliases`, `visible_short_alias`, `visible_short_aliases`
  --> tests/ui/unknown_key.rs:5:17
   |
 5 |     #[arg(long, global = true)]

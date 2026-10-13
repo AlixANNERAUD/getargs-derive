@@ -1,0 +1,23 @@
+error: `value_enum` cannot be used on flags because they do not take a value
+ --> tests/ui/value_enum_field.rs:5:24
+  |
+5 |     #[arg(short, long, value_enum)]
+  |                        ^^^^^^^^^^
+
+error: `value_enum` does not take a value
+ --> tests/ui/value_enum_field.rs:7:17
+  |
+7 |     #[arg(long, value_enum = true)]
+  |                 ^^^^^^^^^^
+
+error: duplicate `value_enum` attribute
+ --> tests/ui/value_enum_field.rs:9:29
+  |
+9 |     #[arg(long, value_enum, value_enum)]
+  |                             ^^^^^^^^^^
+
+error: `value_enum` cannot be used on flags because they do not take a value
+  --> tests/ui/value_enum_field.rs:11:33
+   |
+11 |     #[arg(long, action = Count, value_enum)]
+   |                                 ^^^^^^^^^^

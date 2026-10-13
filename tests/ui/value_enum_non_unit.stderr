@@ -1,0 +1,11 @@
+error: ValueEnum variants cannot have fields; `Slow` must be a unit variant
+ --> tests/ui/value_enum_non_unit.rs:6:9
+  |
+6 |     Slow(u8),
+  |         ^^^^
+
+error: ValueEnum variants cannot have fields; `Custom` must be a unit variant
+ --> tests/ui/value_enum_non_unit.rs:7:12
+  |
+7 |     Custom { speed: u8 },
+  |            ^^^^^^^^^^^^^
