@@ -3,7 +3,6 @@ mod aliases;
 mod defaults;
 mod env;
 mod help;
-mod kind;
 mod names;
 mod relations;
 mod value_enum;
@@ -14,7 +13,6 @@ use super::errors::Errors;
 use super::types::{is_bool_type, is_count_type, is_str_reference_type, option_inner_type};
 pub(crate) use action::FlagAction;
 pub(crate) use aliases::Alias;
-use defaults::set_default;
 use proc_macro2::Span;
 pub(crate) use relations::Relations;
 use syn::{Expr, Field, Ident, LitStr, Meta, Type, ext::IdentExt, spanned::Spanned};
@@ -24,15 +22,12 @@ const ARG_KEYS: &[Key<RawField>] = &[
     Key::new("alias", aliases::alias),
     Key::new("aliases", aliases::aliases),
     Key::new("conflicts_with", relations::conflicts_with),
-    Key::legacy("default", defaults::default),
     Key::new("default_value", defaults::default_value),
     Key::new("default_value_t", defaults::default_value_t),
     Key::new("env", env::env),
-    Key::new("flag", kind::flag),
     Key::new("group", relations::group),
     Key::new("help", help::help),
     Key::new("long", names::long),
-    Key::new("positional", kind::positional),
     Key::new(
         "required_unless_present",
         relations::required_unless_present,
@@ -113,8 +108,6 @@ impl FieldModel {
 enum DefaultSource {
     DefaultValue,
     DefaultValueT,
-    ArgDefault,
-    DefaultAttribute,
 }
 
 impl DefaultSource {
@@ -122,8 +115,6 @@ impl DefaultSource {
         match self {
             DefaultSource::DefaultValue => "`default_value`",
             DefaultSource::DefaultValueT => "`default_value_t`",
-            DefaultSource::ArgDefault => "`default`",
-            DefaultSource::DefaultAttribute => "`#[default]`",
         }
     }
 }
@@ -132,8 +123,6 @@ impl DefaultSource {
 struct RawField {
     short: Option<(Option<char>, Span)>,
     long: Option<(Option<String>, Span)>,
-    flag: Option<Span>,
-    positional: Option<Span>,
     default: Option<(DefaultSource, DefaultValue)>,
     help: Option<String>,
     value_name: Option<(String, Span)>,
@@ -165,26 +154,6 @@ fn parse_raw_field(field: &Field) -> syn::Result<RawField> {
             if let Err(error) =
                 attr.parse_nested_meta(|meta| dispatch(meta, "arg", ARG_KEYS, &mut raw))
             {
-                errors.push(error);
-            }
-        } else if attr.path().is_ident("default") {
-            let value = match &attr.meta {
-                Meta::List(list) => syn::parse2::<Expr>(list.tokens.clone()),
-                Meta::NameValue(named) => Ok(named.value.clone()),
-                Meta::Path(_) => Err(syn::Error::new_spanned(
-                    attr,
-                    "`#[default]` requires a value, e.g. `#[arg(default_value_t = 4)]`",
-                )),
-            };
-            let result = value.and_then(|expr| {
-                set_default(
-                    &mut raw.default,
-                    DefaultSource::DefaultAttribute,
-                    DefaultValue::Expr(expr),
-                    attr.path().span(),
-                )
-            });
-            if let Err(error) = result {
                 errors.push(error);
             }
         }
@@ -270,15 +239,6 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         }
     }
 
-    if let Some(span) = raw.positional
-        && named
-    {
-        errors.push(syn::Error::new(
-            span,
-            "`positional` cannot be combined with `short` or `long`",
-        ));
-    }
-
     if !named
         && let Some(span) = raw
             .short_aliases
@@ -292,19 +252,7 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
         ));
     }
 
-    if let Some(span) = raw.flag {
-        if !is_bool {
-            errors.push(syn::Error::new(
-                span,
-                "`flag` can only be used on `bool` fields",
-            ));
-        } else if !named {
-            errors.push(syn::Error::new(
-                span,
-                "`flag` requires a named option; add `short` and/or `long`, e.g. `#[arg(short, long)]`",
-            ));
-        }
-    } else if is_bool && !named && raw.action.is_none() {
+    if is_bool && !named && raw.action.is_none() {
         errors.push(syn::Error::new(
             ident.span(),
             "`bool` fields cannot be positional; add `short` and/or `long` to make it a flag, e.g. `#[arg(short, long)]`",

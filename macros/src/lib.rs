@@ -21,7 +21,7 @@ use syn::{DeriveInput, parse_macro_input};
 ///
 /// See the [crate-level documentation](getargs_derive) for a full reference of
 /// supported `#[arg(...)]` and `#[command(...)]` attributes.
-#[proc_macro_derive(GetArgs, attributes(arg, command, default))]
+#[proc_macro_derive(GetArgs, attributes(arg, command))]
 pub fn derive_get_args(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     match model::parse(&input) {

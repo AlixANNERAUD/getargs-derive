@@ -12,11 +12,4 @@ struct MissingValue {
     jobs: u32,
 }
 
-#[derive(GetArgs)]
-struct LegacyMissingValue {
-    #[arg(long)]
-    #[default]
-    jobs: u32,
-}
-
 fn main() {}

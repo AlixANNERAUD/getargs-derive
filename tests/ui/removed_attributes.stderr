@@ -1,0 +1,17 @@
+error: unknown `arg` attribute `flag`; supported attributes are: `action`, `alias`, `aliases`, `conflicts_with`, `default_value`, `default_value_t`, `env`, `group`, `help`, `long`, `required_unless_present`, `requires`, `short`, `short_alias`, `short_aliases`, `value_enum`, `value_name`, `visible_alias`, `visible_aliases`, `visible_short_alias`, `visible_short_aliases`
+ --> tests/ui/removed_attributes.rs:5:17
+  |
+5 |     #[arg(long, flag)]
+  |                 ^^^^
+
+error: unknown `arg` attribute `default`; supported attributes are: `action`, `alias`, `aliases`, `conflicts_with`, `default_value`, `default_value_t`, `env`, `group`, `help`, `long`, `required_unless_present`, `requires`, `short`, `short_alias`, `short_aliases`, `value_enum`, `value_name`, `visible_alias`, `visible_aliases`, `visible_short_alias`, `visible_short_aliases`
+  --> tests/ui/removed_attributes.rs:11:17
+   |
+11 |     #[arg(long, default = 1)]
+   |                 ^^^^^^^
+
+error: cannot find attribute `default` in this scope
+  --> tests/ui/removed_attributes.rs:18:7
+   |
+18 |     #[default(1)]
+   |       ^^^^^^^

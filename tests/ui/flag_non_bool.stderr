@@ -1,5 +1,0 @@
-error: `flag` can only be used on `bool` fields
- --> tests/ui/flag_non_bool.rs:5:17
-  |
-5 |     #[arg(long, flag)]
-  |                 ^^^^

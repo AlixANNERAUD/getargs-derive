@@ -9,9 +9,3 @@ error: `Option<T>` fields are `None` when absent and cannot have a default; remo
    |
 11 |     #[arg(short, default_value_t = 4)]
    |                                    ^
-
-error: `Option<T>` fields are `None` when absent and cannot have a default; remove `#[default]` or change the field type to `T`
-  --> tests/ui/option_with_default.rs:17:15
-   |
-17 |     #[default(4)]
-   |               ^

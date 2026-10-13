@@ -64,23 +64,6 @@ Because errors borrow from the arguments, they must be handled while the argumen
 and can be returned from `main`; with `std::env::args()`, collect the arguments first and report the error before they are dropped,
 as shown in [Generated Help][guide-help].
 
-## Changes From Earlier Versions
-
-The `Error` enum was redesigned to report the offending argument:
-
-| Before                              | After                                                                                     |
-| ----------------------------------- | ----------------------------------------------------------------------------------------- |
-| `Error`                             | `Error<'a>`, borrowing from the parsed arguments.                                         |
-| `MissingPositionalArgument(name)`   | `MissingArgument(name)`; it is also used for named options. The name is now `<INPUT>` or `--name <NAME>` instead of the field or long name. |
-| `UnknownOption`                     | `UnknownOption { option, suggestion }`.                                                   |
-| `InvalidNumberOfArguments`          | `UnexpectedArgument(argument)`.                                                           |
-| `ParseError(name)`                  | `InvalidValue { name, value }`.                                                           |
-| `MissingOptionValue(name)`          | Unchanged, but the name is now `--output <OUTPUT>` instead of `output`.                   |
-| `UnknownOption` for `--flag=value`  | `UnexpectedValue(option)`.                                                                |
-| `Help(text)`, `Version(text)`       | Unchanged.                                                                                |
-
-`Display` messages now follow Clap's wording instead of the previous capitalised messages.
-
 [guide-aliases]: aliases.md
 [guide-help]: help.md
 [guide-relations]: relations.md
