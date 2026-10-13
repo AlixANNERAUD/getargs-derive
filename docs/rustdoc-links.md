@@ -12,5 +12,6 @@
 [guide-help]: crate::guide::help
 [guide-version]: crate::guide::version
 [guide-errors]: crate::guide::errors
+[guide-completions]: crate::guide::completions
 [guide-clap]: crate::guide::clap
 [guide-no-std]: crate::guide::no_std

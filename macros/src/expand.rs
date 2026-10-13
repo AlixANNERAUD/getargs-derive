@@ -1,4 +1,5 @@
 mod args_trait;
+mod command;
 mod env;
 mod field;
 mod flatten;
@@ -56,6 +57,7 @@ pub(crate) fn expand(input: &DeriveInput, model: &Model) -> TokenStream {
     };
     let args_impl = args_trait::args_impl(input, model);
     let flatten_checks = flatten::checks(model);
+    let command_impl = command::command_impl(input, model);
 
     let body = quote! {
         let __context = getargs_derive::__private::Context::new(__raw);
@@ -106,6 +108,8 @@ pub(crate) fn expand(input: &DeriveInput, model: &Model) -> TokenStream {
         }
 
         #args_impl
+
+        #command_impl
 
         #flatten_checks
     }

@@ -187,6 +187,7 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
     };
     let relation_checks = relation_checks(&model.container, &model.fields);
     let constants = constants(model);
+    let command_constants = super::command::constants(input, model);
     let uses_last = model.slots().iter().any(
         |slot| !matches!(slot, Slot::Arg(field) if !matches!(field.kind, FieldKind::Positional)),
     );
@@ -204,6 +205,8 @@ pub(super) fn args_impl(input: &DeriveInput, model: &Model) -> TokenStream {
             type State = (#(#state_types,)*);
 
             #constants
+
+            #command_constants
 
             fn init() -> Self::State {
                 #init

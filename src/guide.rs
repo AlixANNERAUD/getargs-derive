@@ -57,6 +57,10 @@ pub mod version {}
 pub mod errors {}
 
 #[doc = include_str!("../docs/rustdoc-links.md")]
+#[doc = include_str!("../docs/completions.md")]
+pub mod completions {}
+
+#[doc = include_str!("../docs/rustdoc-links.md")]
 #[doc = include_str!("../docs/clap.md")]
 pub mod clap {}
 

@@ -62,6 +62,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 - [Generated Help][guide-help]: the `HELP` and `LONG_HELP` constants, `-h`/`--help`, `disable_help_flag`, and help customization (hidden arguments, headings, ordering, extra text and wrapping).
 - [Version Flag][guide-version]: `#[command(version)]`, `-V`/`--version` and the `VERSION`/`VERSION_TEXT` constants.
 - [Error Handling][guide-errors]: the `Error` enum, its Clap-style messages and "did you mean" suggestions.
+- [Shell Completions and Man Pages][guide-completions]: the `Command` metadata trait, and bash, zsh and fish completion scripts and man pages with the `std` feature.
 - [Clap Compatibility][guide-clap]: what is shared with Clap, and what is not supported.
 - [`no_std` Support][guide-no-std].
 
@@ -89,5 +90,6 @@ Developed by [Alix ANNERAUD](https://alix.anneraud.fr).
 [guide-help]: docs/help.md
 [guide-version]: docs/version.md
 [guide-errors]: docs/errors.md
+[guide-completions]: docs/completions.md
 [guide-clap]: docs/clap.md
 [guide-no-std]: docs/no_std.md
