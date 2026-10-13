@@ -27,6 +27,22 @@ pub enum Error {
 
     /// More positional arguments were provided than the struct defines.
     InvalidNumberOfArguments,
+
+    /// Help was requested with `-h` or `--help`.
+    ///
+    /// This is not a parse failure: the string is the generated help text (the struct's `HELP`
+    /// constant). Applications should print it to standard output and exit successfully.
+    /// It is never returned when help is disabled with `#[command(disable_help_flag)]`.
+    Help(&'static str),
+}
+
+impl Error {
+    /// Returns `true` if this is [`Error::Help`], i.e. the user asked for help rather than
+    /// passing invalid arguments.
+    #[must_use]
+    pub fn is_help(&self) -> bool {
+        matches!(self, Error::Help(_))
+    }
 }
 
 impl core::fmt::Display for Error {
@@ -43,6 +59,7 @@ impl core::fmt::Display for Error {
             Error::InvalidNumberOfArguments => {
                 write!(f, "Invalid number of arguments provided")
             }
+            Error::Help(help) => f.write_str(help),
         }
     }
 }

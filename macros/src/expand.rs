@@ -1,4 +1,5 @@
-use crate::model::{DefaultValue, FieldKind, FieldModel};
+use crate::help::help_text;
+use crate::model::{ContainerModel, DefaultValue, FieldKind, FieldModel};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{DeriveInput, GenericParam};
@@ -41,7 +42,11 @@ fn fallback(field: &FieldModel) -> TokenStream {
     }
 }
 
-pub(crate) fn expand(input: &DeriveInput, fields: &[FieldModel]) -> TokenStream {
+pub(crate) fn expand(
+    input: &DeriveInput,
+    container: &ContainerModel,
+    fields: &[FieldModel],
+) -> TokenStream {
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let lifetime_params: Vec<_> = input
@@ -131,8 +136,24 @@ pub(crate) fn expand(input: &DeriveInput, fields: &[FieldModel]) -> TokenStream 
         }
     };
 
+    let help = help_text(container, fields);
+    let help_handler = if container.disable_help_flag {
+        quote! {}
+    } else {
+        quote! {
+            getargs::Arg::Short('h') | getargs::Arg::Long("help") => {
+                return Err(getargs_derive::Error::Help(Self::HELP));
+            }
+        }
+    };
+
     quote! {
         impl #impl_generics #name #ty_generics #where_clause {
+            /// Help text generated at compile time from the struct, its fields and their documentation.
+            ///
+            /// Returned in [`Error::Help`](getargs_derive::Error::Help) when `-h` or `--help` is given.
+            pub const HELP: &'static str = #help;
+
             /// Parse CLI arguments from an iterator, using `getargs::Options`.
             ///
             /// This is the low-level method. Prefer [`from_args`](Self::from_args) for convenience.
@@ -146,6 +167,7 @@ pub(crate) fn expand(input: &DeriveInput, fields: &[FieldModel]) -> TokenStream 
 
                 while let Some(argument) = options.next_arg().map_err(|_| getargs_derive::Error::UnknownOption)? {
                     match argument {
+                        #help_handler
                         #(#option_match_arms)*
                         #positional_handler
                         _ => return Err(getargs_derive::Error::UnknownOption),

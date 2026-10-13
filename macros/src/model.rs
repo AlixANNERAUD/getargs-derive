@@ -2,12 +2,19 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use std::collections::HashMap;
 use syn::{
-    Data, DeriveInput, Expr, Field, Fields, Ident, Lit, LitStr, Meta, Token, Type, ext::IdentExt,
-    meta::ParseNestedMeta, spanned::Spanned,
+    Attribute, Data, DeriveInput, Expr, ExprLit, Field, Fields, Ident, Lit, LitStr, Meta,
+    MetaNameValue, Token, Type, ext::IdentExt, meta::ParseNestedMeta, spanned::Spanned,
 };
 
-const SUPPORTED_ARG_KEYS: &str =
-    "`short`, `long`, `default_value`, `default_value_t`, `flag`, `positional`, `default` (legacy)";
+const SUPPORTED_ARG_KEYS: &str = "`short`, `long`, `help`, `value_name`, `default_value`, `default_value_t`, `flag`, `positional`, `default` (legacy)";
+
+const SUPPORTED_COMMAND_KEYS: &str = "`name`, `about`, `disable_help_flag`";
+
+pub(crate) struct ContainerModel {
+    pub(crate) name: Option<String>,
+    pub(crate) about: Option<String>,
+    pub(crate) disable_help_flag: bool,
+}
 
 pub(crate) enum FieldKind {
     Positional,
@@ -29,6 +36,8 @@ pub(crate) struct FieldModel {
     pub(crate) long: Option<String>,
     pub(crate) default: Option<DefaultValue>,
     pub(crate) is_str: bool,
+    pub(crate) help: Option<String>,
+    pub(crate) value_name: String,
     short_span: Span,
     long_span: Span,
 }
@@ -68,6 +77,8 @@ struct RawField {
     flag: Option<Span>,
     positional: Option<Span>,
     default: Option<(DefaultSource, DefaultValue)>,
+    help: Option<String>,
+    value_name: Option<(String, Span)>,
 }
 
 #[derive(Default)]
@@ -169,6 +180,58 @@ fn require_value<'a>(
     meta.value()
 }
 
+fn parse_string(meta: &ParseNestedMeta, key: &str, example: &str) -> syn::Result<LitStr> {
+    match require_value(meta, key, example)?.parse::<Lit>()? {
+        Lit::Str(literal) => Ok(literal),
+        other => Err(syn::Error::new(
+            other.span(),
+            format!("`{key}` expects a string literal, e.g. `{example}`"),
+        )),
+    }
+}
+
+fn doc_lines(attrs: &[Attribute]) -> Vec<String> {
+    attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("doc"))
+        .filter_map(|attr| match &attr.meta {
+            Meta::NameValue(MetaNameValue {
+                value:
+                    Expr::Lit(ExprLit {
+                        lit: Lit::Str(literal),
+                        ..
+                    }),
+                ..
+            }) => Some(literal.value()),
+            _ => None,
+        })
+        .flat_map(|value| {
+            value
+                .split('\n')
+                .map(|line| line.trim().to_owned())
+                .collect::<Vec<_>>()
+        })
+        .collect()
+}
+
+fn short_doc(attrs: &[Attribute]) -> Option<String> {
+    let lines = doc_lines(attrs);
+    let paragraph: Vec<&str> = lines
+        .iter()
+        .map(String::as_str)
+        .skip_while(|line| line.is_empty())
+        .take_while(|line| !line.is_empty())
+        .collect();
+    if paragraph.is_empty() {
+        return None;
+    }
+    let mut text = paragraph.join(" ");
+    if text.ends_with('.') && !text.ends_with("..") {
+        text.pop();
+    }
+    Some(text)
+}
+
 fn parse_arg_entry(meta: ParseNestedMeta, raw: &mut RawField) -> syn::Result<()> {
     let key_span = meta.path.span();
     let Some(key) = meta.path.get_ident().map(Ident::to_string) else {
@@ -210,6 +273,21 @@ fn parse_arg_entry(meta: ParseNestedMeta, raw: &mut RawField) -> syn::Result<()>
                 (None, key_span)
             };
             set_once(&mut raw.long, value, &meta)
+        }
+        "help" => {
+            let literal = parse_string(&meta, "help", "help = \"Print more output\"")?;
+            set_once(&mut raw.help, literal.value(), &meta)
+        }
+        "value_name" => {
+            let literal = parse_string(&meta, "value_name", "value_name = \"FILE\"")?;
+            let value = literal.value();
+            if value.is_empty() || value.contains(char::is_whitespace) {
+                return Err(syn::Error::new(
+                    literal.span(),
+                    "`value_name` cannot be empty or contain whitespace",
+                ));
+            }
+            set_once(&mut raw.value_name, (value, literal.span()), &meta)
         }
         "flag" => {
             reject_value(&meta, "flag")?;
@@ -404,6 +482,16 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
         None => (None, ident.span()),
     };
 
+    if let Some((_, span)) = &raw.value_name
+        && is_bool
+        && named
+    {
+        errors.push(syn::Error::new(
+            *span,
+            "`value_name` cannot be used on flags because they do not take a value",
+        ));
+    }
+
     let kind = if !named {
         FieldKind::Positional
     } else if is_bool {
@@ -411,6 +499,11 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
     } else {
         FieldKind::Option
     };
+
+    let value_name = raw
+        .value_name
+        .map(|(value, _)| value)
+        .unwrap_or_else(|| name.to_uppercase());
 
     errors.finish(FieldModel {
         ident,
@@ -421,18 +514,25 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
         short,
         long,
         default: raw.default.map(|(_, value)| value),
+        help: raw.help.or_else(|| short_doc(&field.attrs)),
+        value_name,
         short_span,
         long_span,
     })
 }
 
-fn validate_struct(fields: &[FieldModel], errors: &mut Errors) {
+fn validate_struct(fields: &[FieldModel], help_enabled: bool, errors: &mut Errors) {
     let mut shorts: HashMap<char, &str> = HashMap::new();
     let mut longs: HashMap<&str, &str> = HashMap::new();
     let mut optional_positional: Option<&str> = None;
 
     for field in fields {
-        if let Some(short) = field.short {
+        if help_enabled && field.short == Some('h') {
+            errors.push(syn::Error::new(
+                field.short_span,
+                "short option `-h` is reserved for the generated help flag; choose another short name, or add `#[command(disable_help_flag)]` to the struct to handle `-h` yourself",
+            ));
+        } else if let Some(short) = field.short {
             match shorts.get(&short) {
                 Some(owner) => errors.push(syn::Error::new(
                     field.short_span,
@@ -444,7 +544,12 @@ fn validate_struct(fields: &[FieldModel], errors: &mut Errors) {
             }
         }
 
-        if let Some(long) = &field.long {
+        if help_enabled && field.long.as_deref() == Some("help") {
+            errors.push(syn::Error::new(
+                field.long_span,
+                "long option `--help` is reserved for the generated help flag; choose another long name, or add `#[command(disable_help_flag)]` to the struct to handle `--help` yourself",
+            ));
+        } else if let Some(long) = &field.long {
             match longs.get(long.as_str()) {
                 Some(owner) => errors.push(syn::Error::new(
                     field.long_span,
@@ -472,7 +577,75 @@ fn validate_struct(fields: &[FieldModel], errors: &mut Errors) {
     }
 }
 
-pub(crate) fn parse_fields(input: &DeriveInput) -> syn::Result<Vec<FieldModel>> {
+fn parse_command_entry(
+    meta: ParseNestedMeta,
+    name: &mut Option<String>,
+    about: &mut Option<String>,
+    disable_help_flag: &mut Option<()>,
+) -> syn::Result<()> {
+    let Some(key) = meta.path.get_ident().map(Ident::to_string) else {
+        let path = meta.path.to_token_stream().to_string().replace(' ', "");
+        return Err(meta.error(format!(
+            "unknown `command` attribute `{path}`; supported attributes are: {SUPPORTED_COMMAND_KEYS}"
+        )));
+    };
+
+    match key.as_str() {
+        "name" => {
+            let literal = parse_string(&meta, "name", "name = \"tool\"")?;
+            let value = literal.value();
+            if value.is_empty() {
+                return Err(syn::Error::new(literal.span(), "`name` cannot be empty"));
+            }
+            set_once(name, value, &meta)
+        }
+        "about" => {
+            let literal = parse_string(&meta, "about", "about = \"Does things\"")?;
+            set_once(about, literal.value(), &meta)
+        }
+        "disable_help_flag" => {
+            reject_value(&meta, "disable_help_flag")?;
+            set_once(disable_help_flag, (), &meta)
+        }
+        _ => Err(meta.error(format!(
+            "unknown `command` attribute `{key}`; supported attributes are: {SUPPORTED_COMMAND_KEYS}"
+        ))),
+    }
+}
+
+fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel> {
+    let mut name = None;
+    let mut about = None;
+    let mut disable_help_flag = None;
+    let mut errors = Errors::default();
+
+    for attr in &input.attrs {
+        if !attr.path().is_ident("command") {
+            continue;
+        }
+        if let Meta::Path(_) = attr.meta {
+            errors.push(syn::Error::new_spanned(
+                attr,
+                "expected `#[command(...)]`, e.g. `#[command(name = \"tool\")]`",
+            ));
+            continue;
+        }
+        let result = attr.parse_nested_meta(|meta| {
+            parse_command_entry(meta, &mut name, &mut about, &mut disable_help_flag)
+        });
+        if let Err(error) = result {
+            errors.push(error);
+        }
+    }
+
+    errors.finish(ContainerModel {
+        name,
+        about: about.or_else(|| short_doc(&input.attrs)),
+        disable_help_flag: disable_help_flag.is_some(),
+    })
+}
+
+pub(crate) fn parse(input: &DeriveInput) -> syn::Result<(ContainerModel, Vec<FieldModel>)> {
     let fields = match &input.data {
         Data::Struct(data) => match &data.fields {
             Fields::Named(fields) => &fields.named,
@@ -504,6 +677,13 @@ pub(crate) fn parse_fields(input: &DeriveInput) -> syn::Result<Vec<FieldModel>> 
     };
 
     let mut errors = Errors::default();
+    let container = match parse_container(input) {
+        Ok(container) => Some(container),
+        Err(error) => {
+            errors.push(error);
+            None
+        }
+    };
     let mut models = Vec::new();
 
     for field in fields {
@@ -513,6 +693,12 @@ pub(crate) fn parse_fields(input: &DeriveInput) -> syn::Result<Vec<FieldModel>> 
         }
     }
 
-    validate_struct(&models, &mut errors);
-    errors.finish(models)
+    let help_enabled = container
+        .as_ref()
+        .is_some_and(|container| !container.disable_help_flag);
+    validate_struct(&models, help_enabled, &mut errors);
+    match container {
+        Some(container) => errors.finish((container, models)),
+        None => Err(errors.0.expect("container errors are recorded")),
+    }
 }

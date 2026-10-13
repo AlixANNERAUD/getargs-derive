@@ -1,0 +1,5 @@
+error: `value_name` cannot be used on flags because they do not take a value
+ --> tests/ui/value_name_on_flag.rs:5:37
+  |
+5 |     #[arg(short, long, value_name = "LEVEL")]
+  |                                     ^^^^^^^

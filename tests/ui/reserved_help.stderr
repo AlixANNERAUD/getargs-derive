@@ -1,0 +1,11 @@
+error: short option `-h` is reserved for the generated help flag; choose another short name, or add `#[command(disable_help_flag)]` to the struct to handle `-h` yourself
+ --> tests/ui/reserved_help.rs:5:11
+  |
+5 |     #[arg(short, long)]
+  |           ^^^^^
+
+error: long option `--help` is reserved for the generated help flag; choose another long name, or add `#[command(disable_help_flag)]` to the struct to handle `--help` yourself
+ --> tests/ui/reserved_help.rs:7:18
+  |
+7 |     #[arg(long = "help")]
+  |                  ^^^^^^
