@@ -10,7 +10,7 @@ mod validate;
 pub(crate) use container::{ContainerModel, Version};
 use field::Member;
 pub(crate) use field::{
-    DefaultValue, FieldKind, FieldModel, FlagAction, FlattenModel, ValueParser,
+    Alias, DefaultValue, FieldKind, FieldModel, FlagAction, FlattenModel, ValueParser,
 };
 pub(crate) use relations::resolve_groups;
 

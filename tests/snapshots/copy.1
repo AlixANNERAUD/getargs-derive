@@ -1,0 +1,53 @@
+.TH copy 1 "" "copy 1.2.3"
+.SH NAME
+copy \- Copy files
+.SH SYNOPSIS
+\fBcopy\fR [\fB\-o\fR|\fB\-d\fR|\fB\-\-output\fR|\fB\-\-destination\fR \fIFILE\fR] [\fB\-\-color\fR \fICOLOR\fR] \fB\-s\fR|\fB\-\-size\fR \fISIZE\fR [\fB\-f\fR|\fB\-\-force\fR] [\fB\-v\fR|\fB\-\-verbose\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] <\fIINPUT\fR> [\fIMODE\fR] [\-\- \fIREST\fR]
+.SH DESCRIPTION
+Copy files.
+.sp
+Copies the input to the output, keeping the file's permissions.
+.sp
+\&.Lines starting with a dot are escaped.
+.SH ARGUMENTS
+.TP
+<\fIINPUT\fR>
+Input file
+.TP
+[\fIMODE\fR]
+Copy mode
+.sp
+[\fIpossible values: \fRfast, safe]
+.TP
+[\fIREST\fR]
+Arguments passed through
+.SH OPTIONS
+.TP
+\fB\-o\fR, \fB\-d\fR, \fB\-\-output\fR, \fB\-\-destination\fR=\fIFILE\fR
+Output file, `\-` for "stdout"
+.TP
+\fB\-\-color\fR=\fICOLOR\fR
+When to use [colors]: auto or not.
+.sp
+The colors are disabled when the output is not a terminal.
+.sp
+[env: COPY_COLOR=]
+.br
+[\fIpossible values: \fRauto, always, never]
+.TP
+\fB\-s\fR, \fB\-\-size\fR=\fISIZE\fR
+Size in bytes
+.TP
+\fB\-f\fR, \fB\-\-force\fR
+Overwrite existing files
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+More output, repeat for more
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help (see a summary with '\-h')
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.SH VERSION
+v1.2.3

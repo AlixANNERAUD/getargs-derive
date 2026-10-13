@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::{ArgInfo, Error};
 use core::cell::Cell;
 
 /// One argument of the generated help: its labels, descriptions and placement.
@@ -115,6 +115,10 @@ pub trait Args<'a>: Sized {
     type Env: EnvFlag;
     /// Whether a visible argument has a long help text, flattened structs included.
     const HAS_LONG_HELP: bool;
+    /// Public metadata of the arguments, flattened structs included, in field order.
+    const ARGS: &'static [ArgInfo];
+    /// [`ARGS`](Self::ARGS) followed by the generated flags of the struct itself.
+    const COMMAND_ARGS: &'static [ArgInfo];
 
     /// Returns the state before any argument is parsed.
     fn init() -> Self::State;
@@ -229,6 +233,23 @@ const fn str_eq(first: &str, second: &str) -> bool {
         index += 1;
     }
     true
+}
+
+/// The generated `--help` flag.
+pub const fn help_arg(has_long_help: bool) -> ArgInfo {
+    ArgInfo::new("help", crate::ArgKind::Flag)
+        .short('h')
+        .long("help")
+        .help(help_flag(false, has_long_help))
+        .long_help(help_flag(true, has_long_help))
+}
+
+/// The generated `--version` flag.
+pub const fn version_arg() -> ArgInfo {
+    ArgInfo::new("version", crate::ArgKind::Flag)
+        .short('V')
+        .long("version")
+        .help("Print version")
 }
 
 /// Whether `list` contains `short`.

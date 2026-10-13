@@ -9,6 +9,9 @@ extern crate self as getargs_derive;
 #[cfg(feature = "std")]
 extern crate std;
 
+mod command;
+#[cfg(feature = "std")]
+pub mod completions;
 mod env;
 mod error;
 pub mod guide;
@@ -20,6 +23,7 @@ mod value_enum;
 #[path = "private.rs"]
 pub mod __private;
 
+pub use command::{ArgInfo, ArgKind, Command, CommandInfo};
 pub use error::*;
 pub use value_enum::{ParseValueEnumError, ValueEnum};
 
