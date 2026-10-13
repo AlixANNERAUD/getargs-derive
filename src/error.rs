@@ -34,6 +34,13 @@ pub enum Error {
     /// constant). Applications should print it to standard output and exit successfully.
     /// It is never returned when help is disabled with `#[command(disable_help_flag)]`.
     Help(&'static str),
+
+    /// The version was requested with `-V` or `--version`.
+    ///
+    /// This is not a parse failure: the string is the version line, the command name followed by
+    /// the version (the struct's `VERSION_TEXT` constant). Applications should print it to standard
+    /// output and exit successfully. It is only returned when `#[command(version)]` is set.
+    Version(&'static str),
 }
 
 impl Error {
@@ -42,6 +49,13 @@ impl Error {
     #[must_use]
     pub fn is_help(&self) -> bool {
         matches!(self, Error::Help(_))
+    }
+
+    /// Returns `true` if this is [`Error::Version`], i.e. the user asked for the version rather
+    /// than passing invalid arguments.
+    #[must_use]
+    pub fn is_version(&self) -> bool {
+        matches!(self, Error::Version(_))
     }
 }
 
@@ -60,6 +74,7 @@ impl core::fmt::Display for Error {
                 write!(f, "Invalid number of arguments provided")
             }
             Error::Help(help) => f.write_str(help),
+            Error::Version(version) => f.write_str(version),
         }
     }
 }

@@ -1,0 +1,17 @@
+error: `version` cannot be empty
+ --> tests/ui/invalid_version.rs:4:21
+  |
+4 | #[command(version = "")]
+  |                     ^^
+
+error: `version` expects a string literal, e.g. `version = "1.0.0"`
+ --> tests/ui/invalid_version.rs:8:21
+  |
+8 | #[command(version = 1)]
+  |                     ^
+
+error: duplicate `version` attribute
+  --> tests/ui/invalid_version.rs:12:20
+   |
+12 | #[command(version, version = "1.0")]
+   |                    ^^^^^^^^^^^^^^^

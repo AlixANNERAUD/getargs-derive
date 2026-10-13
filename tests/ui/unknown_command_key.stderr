@@ -1,5 +1,5 @@
-error: unknown `command` attribute `version`; supported attributes are: `name`, `about`, `disable_help_flag`
+error: unknown `command` attribute `long_about`; supported attributes are: `name`, `about`, `version`, `disable_help_flag`
  --> tests/ui/unknown_command_key.rs:4:26
   |
-4 | #[command(name = "tool", version = "1.0")]
-  |                          ^^^^^^^
+4 | #[command(name = "tool", long_about = "More")]
+  |                          ^^^^^^^^^^

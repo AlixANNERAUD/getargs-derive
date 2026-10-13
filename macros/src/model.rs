@@ -9,12 +9,18 @@ use syn::{
 
 const SUPPORTED_ARG_KEYS: &str = "`short`, `long`, `help`, `value_name`, `default_value`, `default_value_t`, `flag`, `positional`, `default` (legacy)";
 
-const SUPPORTED_COMMAND_KEYS: &str = "`name`, `about`, `disable_help_flag`";
+const SUPPORTED_COMMAND_KEYS: &str = "`name`, `about`, `version`, `disable_help_flag`";
 
 pub(crate) struct ContainerModel {
     pub(crate) name: Option<String>,
     pub(crate) about: Option<String>,
+    pub(crate) version: Option<Version>,
     pub(crate) disable_help_flag: bool,
+}
+
+pub(crate) enum Version {
+    Package,
+    Literal(String),
 }
 
 pub(crate) enum FieldKind {
@@ -584,7 +590,12 @@ fn build_field(field: &Field) -> syn::Result<FieldModel> {
     })
 }
 
-fn validate_struct(fields: &[FieldModel], help_enabled: bool, errors: &mut Errors) {
+fn validate_struct(
+    fields: &[FieldModel],
+    help_enabled: bool,
+    version_enabled: bool,
+    errors: &mut Errors,
+) {
     let mut shorts: HashMap<char, &str> = HashMap::new();
     let mut longs: HashMap<&str, &str> = HashMap::new();
     let mut optional_positional: Option<&str> = None;
@@ -594,6 +605,11 @@ fn validate_struct(fields: &[FieldModel], help_enabled: bool, errors: &mut Error
             errors.push(syn::Error::new(
                 field.short_span,
                 "short option `-h` is reserved for the generated help flag; choose another short name, or add `#[command(disable_help_flag)]` to the struct to handle `-h` yourself",
+            ));
+        } else if version_enabled && field.short == Some('V') {
+            errors.push(syn::Error::new(
+                field.short_span,
+                "short option `-V` is reserved for the generated version flag; choose another short name, or remove `version` from `#[command(...)]` to handle `-V` yourself",
             ));
         } else if let Some(short) = field.short {
             match shorts.get(&short) {
@@ -611,6 +627,11 @@ fn validate_struct(fields: &[FieldModel], help_enabled: bool, errors: &mut Error
             errors.push(syn::Error::new(
                 field.long_span,
                 "long option `--help` is reserved for the generated help flag; choose another long name, or add `#[command(disable_help_flag)]` to the struct to handle `--help` yourself",
+            ));
+        } else if version_enabled && field.long.as_deref() == Some("version") {
+            errors.push(syn::Error::new(
+                field.long_span,
+                "long option `--version` is reserved for the generated version flag; choose another long name, or remove `version` from `#[command(...)]` to handle `--version` yourself",
             ));
         } else if let Some(long) = &field.long {
             match longs.get(long.as_str()) {
@@ -644,6 +665,7 @@ fn parse_command_entry(
     meta: ParseNestedMeta,
     name: &mut Option<String>,
     about: &mut Option<String>,
+    version: &mut Option<Version>,
     disable_help_flag: &mut Option<()>,
 ) -> syn::Result<()> {
     let Some(key) = meta.path.get_ident().map(Ident::to_string) else {
@@ -666,6 +688,20 @@ fn parse_command_entry(
             let literal = parse_string(&meta, "about", "about = \"Does things\"")?;
             set_once(about, literal.value(), &meta)
         }
+        "version" => {
+            let value = if meta.input.peek(Token![=]) {
+                let literal = parse_string(&meta, "version", "version = \"1.0.0\"")?;
+                let value = literal.value();
+                if value.trim().is_empty() {
+                    return Err(syn::Error::new(literal.span(), "`version` cannot be empty"));
+                }
+                Version::Literal(value)
+            } else {
+                reject_value(&meta, "version")?;
+                Version::Package
+            };
+            set_once(version, value, &meta)
+        }
         "disable_help_flag" => {
             reject_value(&meta, "disable_help_flag")?;
             set_once(disable_help_flag, (), &meta)
@@ -679,6 +715,7 @@ fn parse_command_entry(
 fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel> {
     let mut name = None;
     let mut about = None;
+    let mut version = None;
     let mut disable_help_flag = None;
     let mut errors = Errors::default();
 
@@ -694,7 +731,13 @@ fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel> {
             continue;
         }
         let result = attr.parse_nested_meta(|meta| {
-            parse_command_entry(meta, &mut name, &mut about, &mut disable_help_flag)
+            parse_command_entry(
+                meta,
+                &mut name,
+                &mut about,
+                &mut version,
+                &mut disable_help_flag,
+            )
         });
         if let Err(error) = result {
             errors.push(error);
@@ -704,6 +747,7 @@ fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel> {
     errors.finish(ContainerModel {
         name,
         about: about.or_else(|| short_doc(&input.attrs)),
+        version,
         disable_help_flag: disable_help_flag.is_some(),
     })
 }
@@ -759,7 +803,10 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<(ContainerModel, Vec<Fie
     let help_enabled = container
         .as_ref()
         .is_some_and(|container| !container.disable_help_flag);
-    validate_struct(&models, help_enabled, &mut errors);
+    let version_enabled = container
+        .as_ref()
+        .is_some_and(|container| container.version.is_some());
+    validate_struct(&models, help_enabled, version_enabled, &mut errors);
     match container {
         Some(container) => errors.finish((container, models)),
         None => Err(errors.0.expect("container errors are recorded")),

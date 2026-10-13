@@ -50,11 +50,11 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 
 The attributes follow the conventions of [Clap's derive API](https://docs.rs/clap/latest/clap/_derive/index.html):
 `#[arg(short, long)]`, `short = 'x'`, `long = "name"`, `default_value`, `default_value_t`, `help` and `value_name` mean the same thing here as they do in Clap,
-and so do the `name`, `about` and `disable_help_flag` keys of `#[command(...)]`. Doc comments become help text the way they do in Clap, and the generated help uses Clap's layout.
+and so do the `name`, `about`, `version` and `disable_help_flag` keys of `#[command(...)]`. Doc comments become help text the way they do in Clap, and the generated help uses Clap's layout.
 `Option<T>` fields are optional arguments that are `None` when absent, as in Clap.
 
 This crate only implements a **Clap-inspired subset**. It is not a drop-in replacement for Clap and does not aim for full Clap API compatibility:
-other `#[command(...)]` keys (`version`, `long_about`, ...), long help, subcommands, `Vec<T>` fields, `Option<bool>` and `Option<Option<T>>` fields, value enums, actions, and most other Clap attributes are not supported.
+other `#[command(...)]` keys (`long_about`, `disable_version_flag`, ...), long help, subcommands, `Vec<T>` fields, `Option<bool>` and `Option<Option<T>>` fields, value enums, actions, and most other Clap attributes are not supported.
 Unsupported attributes are rejected at compile time rather than silently ignored.
 
 ## Attribute Reference
@@ -173,6 +173,8 @@ The macro reports a compile error, pointing at the offending attribute or field,
 - `long` values that are not a string literal, are empty, start with `-`, or contain whitespace or `=`;
 - two fields using the same short or long name;
 - a field using `-h` or `--help` while the generated help flag is enabled;
+- a field using `-V` or `--version` while `#[command(version)]` is set;
+- an empty or non-string `#[command(version = ...)]`;
 - unknown or repeated `#[command(...)]` keys, and `value_name` on a flag;
 - positional `bool` fields, and `Option<bool>` or `Option<Option<T>>` fields;
 - a required positional argument following an optional one;
@@ -268,6 +270,46 @@ fn main() {
 
 `-h` and `--help` are reserved: a field declaring short name `h` (including one inferred from a field name starting with `h`) or long name `help` is a compile error.
 
+### Handling `-V` and `--version`
+
+`#[command(version)]` enables a version flag, as in Clap. The version is the package version (`CARGO_PKG_VERSION`) of the crate deriving `GetArgs`,
+and `#[command(version = "1.2.3")]` sets it explicitly. Two constants are then generated: `VERSION`, the version itself, and `VERSION_TEXT`,
+the line Clap prints for `--version` (the command name, a space and the version). The help gains a `-V, --version  Print version` line.
+
+`-V` and `--version` make `parse` and `from_args` return `Err(Error::Version(text))`, where `text` is the struct's `VERSION_TEXT`.
+Like help, this takes priority over missing required arguments, is checked with `Error::is_version()`, and never prints anything or exits the process:
+
+```rust
+use getargs_derive::{Error, GetArgs};
+
+#[derive(Debug, GetArgs)]
+#[command(name = "copy", version = "1.2.3")]
+struct Cli<'a> {
+    /// Input file.
+    input: &'a str,
+}
+
+assert_eq!(Cli::VERSION, "1.2.3");
+let error = Cli::from_args(["--version"].into_iter()).unwrap_err();
+assert!(error.is_version());
+assert_eq!(error, Error::Version("copy 1.2.3"));
+assert_eq!(
+    Cli::HELP,
+    "\
+Usage: copy [OPTIONS] <INPUT>
+
+Arguments:
+  <INPUT>  Input file
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version"
+);
+```
+
+With `std`, print it to standard output and exit successfully, as for help. `-V` and `--version` are only reserved when `version` is set:
+a field declaring short name `V` or long name `version` is then a compile error. Without `version`, no version flag is generated and fields may use those names.
+
 ### Container Attributes
 
 The struct accepts a `#[command(...)]` attribute supporting this Clap-like subset only:
@@ -276,6 +318,8 @@ The struct accepts a `#[command(...)]` attribute supporting this Clap-like subse
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `#[command(name = "tool")]`         | Program name shown in the usage line. Defaults to the package name (`CARGO_PKG_NAME`) of the crate deriving `GetArgs`. |
 | `#[command(about = "text")]`        | Description shown at the top of the help. Overrides the struct's doc comment.                                 |
+| `#[command(version)]`               | Enables `-V`/`--version` with the package version (`CARGO_PKG_VERSION`) of the crate deriving `GetArgs`.       |
+| `#[command(version = "1.2.3")]`     | Enables `-V`/`--version` with an explicit version.                                                            |
 | `#[command(disable_help_flag)]`     | Disables `-h`/`--help` handling: they become ordinary unknown options, and fields may use them.               |
 
 With `disable_help_flag`, `HELP` is still generated (without the `-h, --help` line) so you can implement your own help option:
@@ -372,6 +416,9 @@ fn handle_error(err: Error) {
         Error::Help(help) => {
             println!("{help}");
         }
+        Error::Version(version) => {
+            println!("{version}");
+        }
     }
 }
 ```
@@ -384,6 +431,7 @@ fn handle_error(err: Error) {
 | `ParseError(&'static str)`                | A value or `default_value` could not be parsed into the target field type (e.g. `"abc"` for a `u32`). |
 | `InvalidNumberOfArguments`                | More positional arguments were provided than the struct defines.                             |
 | `Help(&'static str)`                      | Not a failure: `-h` or `--help` was given. Carries the generated help text, which is also what `Display` prints. See [Generated Help](#generated-help). |
+| `Version(&'static str)`                   | Not a failure: `-V` or `--version` was given with `#[command(version)]`. Carries the version line (`VERSION_TEXT`), which is also what `Display` prints. |
 
 The name carried by an error is the long name for named options that have one, and the field name otherwise.
 
@@ -429,7 +477,7 @@ assert!(config.archive);
 ## `no_std` Support
 
 This crate is `#![no_std]`-compatible. It only depends on `core` and the `getargs` crate.
-The generated code does not allocate: the help text is a `&'static str` built at compile time.
+The generated code does not allocate: the help text and version line are `&'static str` values built at compile time.
 
 ## License
 
