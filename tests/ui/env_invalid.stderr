@@ -1,0 +1,23 @@
+error: `env` cannot be empty
+ --> tests/ui/env_invalid.rs:5:23
+  |
+5 |     #[arg(long, env = "")]
+  |                       ^^
+
+error: `env` cannot contain `=` or NUL characters
+ --> tests/ui/env_invalid.rs:7:23
+  |
+7 |     #[arg(long, env = "A=B")]
+  |                       ^^^^^
+
+error: expected literal
+ --> tests/ui/env_invalid.rs:9:23
+  |
+9 |     #[arg(long, env = PORT)]
+  |                       ^^^^
+
+error: duplicate `env` attribute
+  --> tests/ui/env_invalid.rs:11:30
+   |
+11 |     #[arg(long, env = "ONE", env = "TWO")]
+   |                              ^^^^^^^^^^^

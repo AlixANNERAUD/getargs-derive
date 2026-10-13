@@ -1,0 +1,11 @@
+error: `env` cannot be used on flags; it is only supported on options and positional arguments
+ --> tests/ui/env_on_flag.rs:5:23
+  |
+5 |     #[arg(long, env = "VERBOSE")]
+  |                       ^^^^^^^^^
+
+error: `env` cannot be used on flags; it is only supported on options and positional arguments
+ --> tests/ui/env_on_flag.rs:7:34
+  |
+7 |     #[arg(short, action = Count, env)]
+  |                                  ^^^

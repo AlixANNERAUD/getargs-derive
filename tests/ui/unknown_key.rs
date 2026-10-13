@@ -2,7 +2,7 @@ use getargs_derive::GetArgs;
 
 #[derive(GetArgs)]
 struct Cli {
-    #[arg(long, env = "VERBOSE")]
+    #[arg(long, global = true)]
     verbose: bool,
 }
 

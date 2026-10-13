@@ -2,6 +2,7 @@
 [guide-actions]: crate::guide::actions
 [guide-aliases]: crate::guide::aliases
 [guide-defaults]: crate::guide::defaults
+[guide-env]: crate::guide::env
 [guide-positionals]: crate::guide::positionals
 [guide-relations]: crate::guide::relations
 [guide-help]: crate::guide::help

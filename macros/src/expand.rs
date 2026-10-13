@@ -1,3 +1,4 @@
+mod env;
 mod field;
 mod help;
 mod relations;
@@ -65,12 +66,52 @@ pub(crate) fn expand(
     let help_handler = help::help_handler(container);
     let (version_items, version_handler) = version::version_tokens(container);
 
-    quote! {
-        impl #impl_generics #name #ty_generics #where_clause {
-            #help_items
+    let body = quote! {
+        #(#initializers)*
+        let mut __positional_index = 0_usize;
 
-            #version_items
+        while let Some(argument) = options.next_arg().map_err(|error| match error {
+            getargs::Error::DoesNotRequireValue(getargs::Opt::Short(short)) => {
+                getargs_derive::Error::UnexpectedValue(getargs_derive::Opt::Short(short))
+            }
+            getargs::Error::DoesNotRequireValue(getargs::Opt::Long(long)) => {
+                getargs_derive::Error::UnexpectedValue(getargs_derive::Opt::Long(long))
+            }
+            _ => getargs_derive::Error::InvalidArguments,
+        })? {
+            match argument {
+                #help_handler
+                #version_handler
+                #(#option_match_arms)*
+                #positional_handler
+                getargs::Arg::Short(short) => {
+                    return Err(getargs_derive::Error::UnknownOption {
+                        option: getargs_derive::Opt::Short(short),
+                        suggestion: core::option::Option::None,
+                    });
+                }
+                getargs::Arg::Long(long) => {
+                    return Err(getargs_derive::Error::UnknownOption {
+                        option: getargs_derive::Opt::Long(long),
+                        suggestion: getargs_derive::__suggest(long, &[#(#long_names),*]),
+                    });
+                }
+            }
+        }
 
+        #relation_checks
+
+        #(#finalizers)*
+
+        Ok(Self {
+            #(#field_builds),*
+        })
+    };
+
+    let parse_methods = if env::has_env(fields) {
+        env::parse_methods(&lifetime_params, body)
+    } else {
+        quote! {
             /// Parse CLI arguments from an iterator, using `getargs::Options`.
             ///
             /// This is the low-level method. Prefer [`from_args`](Self::from_args) for convenience.
@@ -79,45 +120,7 @@ pub(crate) fn expand(
                 I: Iterator<Item = &'__getargs str>,
                 #('__getargs: #lifetime_params,)*
             {
-                #(#initializers)*
-                let mut __positional_index = 0_usize;
-
-                while let Some(argument) = options.next_arg().map_err(|error| match error {
-                    getargs::Error::DoesNotRequireValue(getargs::Opt::Short(short)) => {
-                        getargs_derive::Error::UnexpectedValue(getargs_derive::Opt::Short(short))
-                    }
-                    getargs::Error::DoesNotRequireValue(getargs::Opt::Long(long)) => {
-                        getargs_derive::Error::UnexpectedValue(getargs_derive::Opt::Long(long))
-                    }
-                    _ => getargs_derive::Error::InvalidArguments,
-                })? {
-                    match argument {
-                        #help_handler
-                        #version_handler
-                        #(#option_match_arms)*
-                        #positional_handler
-                        getargs::Arg::Short(short) => {
-                            return Err(getargs_derive::Error::UnknownOption {
-                                option: getargs_derive::Opt::Short(short),
-                                suggestion: core::option::Option::None,
-                            });
-                        }
-                        getargs::Arg::Long(long) => {
-                            return Err(getargs_derive::Error::UnknownOption {
-                                option: getargs_derive::Opt::Long(long),
-                                suggestion: getargs_derive::__suggest(long, &[#(#long_names),*]),
-                            });
-                        }
-                    }
-                }
-
-                #relation_checks
-
-                #(#finalizers)*
-
-                Ok(Self {
-                    #(#field_builds),*
-                })
+                #body
             }
 
             /// Parse CLI arguments directly from an iterator.
@@ -138,6 +141,16 @@ pub(crate) fn expand(
                 let mut options = getargs::Options::new(iter);
                 Self::parse(&mut options)
             }
+        }
+    };
+
+    quote! {
+        impl #impl_generics #name #ty_generics #where_clause {
+            #help_items
+
+            #version_items
+
+            #parse_methods
         }
     }
 }

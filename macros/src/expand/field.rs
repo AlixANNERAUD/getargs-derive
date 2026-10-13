@@ -1,3 +1,4 @@
+use super::env::env_lookup;
 use crate::model::{DefaultValue, FieldKind, FieldModel, FlagAction};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -114,6 +115,8 @@ impl FieldTokens {
                 });
             }
         }
+
+        self.finalizers.extend(env_lookup(field));
 
         if !field.optional {
             let fallback = fallback(field);

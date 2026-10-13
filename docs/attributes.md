@@ -10,6 +10,7 @@ All field attributes live in `#[arg(...)]`. Entries can be combined in one attri
 | `#[arg(long = "name")]`           | Named option with an explicit long name (`--name`).                                                     |
 | `#[arg(default_value = "text")]`  | Default given as a string literal. Used as-is for `&str` fields, otherwise parsed with `FromStr`. See [Default Values][guide-defaults]. |
 | `#[arg(default_value_t = expr)]`  | Default given as a typed Rust expression of the field's type. See [Default Values][guide-defaults].     |
+| `#[arg(env = "NAME")]`          | Falls back to the environment variable `NAME` when absent from the command line. A bare `env` uses the upper-cased field name. See [Environment Variables][guide-env]. |
 | `#[arg(help = "text")]`           | Description shown in the generated help. Overrides the field's doc comment. See [Generated Help][guide-help]. |
 | `#[arg(value_name = "NAME")]`     | Placeholder shown in the generated help (`<NAME>`). Defaults to the upper-cased field name. Not allowed on flags. |
 | `#[arg(action = Count)]`          | Flag counting its occurrences on an integer field. See [Flag Actions][guide-actions].                   |
@@ -102,6 +103,7 @@ The macro reports a compile error, pointing at the offending attribute or field,
 
 [guide-actions]: actions.md
 [guide-defaults]: defaults.md
+[guide-env]: env.md
 [guide-help]: help.md
 [guide-positionals]: positionals.md
 [guide-version]: version.md
