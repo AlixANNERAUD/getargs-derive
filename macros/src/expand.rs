@@ -68,10 +68,11 @@ pub(crate) fn expand(
     for field in fields {
         let field_ident = &field.ident;
         let field_type = &field.ty;
+        let value_type = &field.value_ty;
         let value_ident = format_ident!("__value_{}", field.name);
 
         initializers.push(quote! {
-            let mut #value_ident: core::option::Option<#field_type> = core::option::Option::None;
+            let mut #value_ident: core::option::Option<#value_type> = core::option::Option::None;
         });
 
         match field.kind {
@@ -107,13 +108,15 @@ pub(crate) fn expand(
             }
         }
 
-        let fallback = fallback(field);
-        finalizers.push(quote! {
-            let #value_ident: #field_type = match #value_ident {
-                core::option::Option::Some(value) => value,
-                core::option::Option::None => #fallback,
-            };
-        });
+        if !field.optional {
+            let fallback = fallback(field);
+            finalizers.push(quote! {
+                let #value_ident: #field_type = match #value_ident {
+                    core::option::Option::Some(value) => value,
+                    core::option::Option::None => #fallback,
+                };
+            });
+        }
 
         field_builds.push(quote! { #field_ident: #value_ident });
     }

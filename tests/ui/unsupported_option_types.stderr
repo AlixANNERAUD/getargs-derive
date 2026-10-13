@@ -1,0 +1,17 @@
+error: `Option<bool>` fields are not supported; use a `bool` field with `short` and/or `long` to make it a flag
+ --> tests/ui/unsupported_option_types.rs:6:14
+  |
+6 |     verbose: Option<bool>,
+  |              ^^^^^^^^^^^^
+
+error: `Option<bool>` fields are not supported; use a `bool` field with `short` and/or `long` to make it a flag
+  --> tests/ui/unsupported_option_types.rs:11:14
+   |
+11 |     verbose: Option<bool>,
+   |              ^^^^^^^^^^^^
+
+error: `Option<Option<T>>` fields are not supported; use `Option<T>`
+  --> tests/ui/unsupported_option_types.rs:17:12
+   |
+17 |     level: Option<Option<u8>>,
+   |            ^^^^^^^^^^^^^^^^^^
