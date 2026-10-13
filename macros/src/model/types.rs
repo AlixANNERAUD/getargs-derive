@@ -46,3 +46,20 @@ pub(super) fn is_str_reference_type(ty: &Type) -> bool {
         _ => false,
     }
 }
+
+const COUNT_TYPES: &[&str] = &[
+    "u8", "u16", "u32", "u64", "u128", "usize", "i8", "i16", "i32", "i64", "i128", "isize",
+];
+
+pub(super) fn is_count_type(ty: &Type) -> bool {
+    match ty {
+        Type::Path(path) => {
+            path.qself.is_none()
+                && path.path.segments.last().is_some_and(|segment| {
+                    segment.arguments.is_none()
+                        && COUNT_TYPES.iter().any(|name| segment.ident == name)
+                })
+        }
+        _ => false,
+    }
+}

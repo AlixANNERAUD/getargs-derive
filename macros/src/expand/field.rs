@@ -1,4 +1,4 @@
-use crate::model::{DefaultValue, FieldKind, FieldModel};
+use crate::model::{DefaultValue, FieldKind, FieldModel, FlagAction};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -42,7 +42,9 @@ fn fallback(field: &FieldModel) -> TokenStream {
                 .map_err(|_| getargs_derive::Error::ParseError(#error_name))?
         },
         (Some(DefaultValue::Expr(expr)), _) => quote! { #expr },
-        (None, FieldKind::Flag) => quote! { false },
+        (None, FieldKind::Flag(FlagAction::SetTrue)) => quote! { false },
+        (None, FieldKind::Flag(FlagAction::SetFalse)) => quote! { true },
+        (None, FieldKind::Flag(FlagAction::Count)) => quote! { 0 },
         (None, _) => quote! {
             return Err(getargs_derive::Error::MissingPositionalArgument(#error_name))
         },
@@ -61,11 +63,21 @@ impl FieldTokens {
         });
 
         match field.kind {
-            FieldKind::Flag => {
+            FieldKind::Flag(action) => {
                 let pattern = option_pattern(field);
+                let update = match action {
+                    FlagAction::SetTrue => quote! { true },
+                    FlagAction::SetFalse => quote! { false },
+                    FlagAction::Count => quote! {
+                        match #value_ident {
+                            core::option::Option::Some(count) => count.saturating_add(1),
+                            core::option::Option::None => 1,
+                        }
+                    },
+                };
                 self.option_match_arms.push(quote! {
                     #pattern => {
-                        #value_ident = core::option::Option::Some(true);
+                        #value_ident = core::option::Option::Some(#update);
                     }
                 });
             }

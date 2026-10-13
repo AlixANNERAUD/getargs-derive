@@ -1,0 +1,17 @@
+error: unsupported action `Append`; supported actions are: `SetTrue`, `SetFalse`, `Count`
+ --> tests/ui/action_unknown.rs:5:26
+  |
+5 |     #[arg(long, action = Append)]
+  |                          ^^^^^^
+
+error: unsupported action `clap::ArgAction::Count`; supported actions are: `SetTrue`, `SetFalse`, `Count`
+ --> tests/ui/action_unknown.rs:7:26
+  |
+7 |     #[arg(long, action = clap::ArgAction::Count)]
+  |                          ^^^^^^^^^^^^^^^^^^^^^^
+
+error: `action` requires a value, e.g. `action = Count`
+ --> tests/ui/action_unknown.rs:9:17
+  |
+9 |     #[arg(long, action)]
+  |                 ^^^^^^

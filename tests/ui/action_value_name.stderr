@@ -1,0 +1,11 @@
+error: `value_name` cannot be used on flags because they do not take a value
+ --> tests/ui/action_value_name.rs:5:47
+  |
+5 |     #[arg(short, action = Count, value_name = "LEVEL")]
+  |                                               ^^^^^^^
+
+error: duplicate `action` attribute
+ --> tests/ui/action_value_name.rs:7:33
+  |
+7 |     #[arg(long, action = Count, action = Count)]
+  |                                 ^^^^^^^^^^^^^^

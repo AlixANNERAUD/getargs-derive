@@ -1,3 +1,4 @@
+mod action;
 mod defaults;
 mod help;
 mod kind;
@@ -6,12 +7,14 @@ mod names;
 use super::attr::{Key, dispatch};
 use super::doc::short_doc;
 use super::errors::Errors;
-use super::types::{is_bool_type, is_str_reference_type, option_inner_type};
+use super::types::{is_bool_type, is_count_type, is_str_reference_type, option_inner_type};
+pub(crate) use action::FlagAction;
 use defaults::set_default;
 use proc_macro2::Span;
 use syn::{Expr, Field, Ident, LitStr, Meta, Type, ext::IdentExt, spanned::Spanned};
 
 const ARG_KEYS: &[Key<RawField>] = &[
+    Key::new("action", action::action),
     Key::legacy("default", defaults::default),
     Key::new("default_value", defaults::default_value),
     Key::new("default_value_t", defaults::default_value_t),
@@ -25,7 +28,7 @@ const ARG_KEYS: &[Key<RawField>] = &[
 
 pub(crate) enum FieldKind {
     Positional,
-    Flag,
+    Flag(FlagAction),
     Option,
 }
 
@@ -101,6 +104,7 @@ struct RawField {
     default: Option<(DefaultSource, DefaultValue)>,
     help: Option<String>,
     value_name: Option<(String, Span)>,
+    action: Option<(FlagAction, syn::Path)>,
 }
 
 fn to_kebab_case(name: &str) -> String {
@@ -242,11 +246,38 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
                 "`flag` requires a named option; add `short` and/or `long`, e.g. `#[arg(short, long)]`",
             ));
         }
-    } else if is_bool && !named {
+    } else if is_bool && !named && raw.action.is_none() {
         errors.push(syn::Error::new(
             ident.span(),
             "`bool` fields cannot be positional; add `short` and/or `long` to make it a flag, e.g. `#[arg(short, long)]`",
         ));
+    }
+
+    if let Some((action, path)) = &raw.action {
+        let name = action.name();
+        if !named {
+            errors.push(syn::Error::new_spanned(
+                path,
+                format!(
+                    "`action = {name}` requires a named option; add `short` and/or `long`, e.g. `#[arg(short, long, action = {name})]`"
+                ),
+            ));
+        }
+        match action {
+            FlagAction::SetTrue | FlagAction::SetFalse if !is_bool => {
+                errors.push(syn::Error::new_spanned(
+                    path,
+                    format!("`action = {name}` can only be used on `bool` fields"),
+                ));
+            }
+            FlagAction::Count if !is_count_type(&field.ty) => {
+                errors.push(syn::Error::new_spanned(
+                    path,
+                    "`action = Count` requires an integer field type, e.g. `u8`",
+                ));
+            }
+            _ => {}
+        }
     }
 
     let (short, short_span) = match raw.short {
@@ -276,7 +307,7 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
     };
 
     if let Some((_, span)) = &raw.value_name
-        && is_bool
+        && (is_bool || raw.action.is_some())
         && named
     {
         errors.push(syn::Error::new(
@@ -287,8 +318,10 @@ pub(super) fn build_field(field: &Field) -> syn::Result<FieldModel> {
 
     let kind = if !named {
         FieldKind::Positional
+    } else if let Some((action, _)) = &raw.action {
+        FieldKind::Flag(*action)
     } else if is_bool {
-        FieldKind::Flag
+        FieldKind::Flag(FlagAction::SetTrue)
     } else {
         FieldKind::Option
     };

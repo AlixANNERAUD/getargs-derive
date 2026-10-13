@@ -1,0 +1,11 @@
+error: `action = Count` requires an integer field type, e.g. `u8`
+ --> tests/ui/action_count_non_integer.rs:5:33
+  |
+5 |     #[arg(short, long, action = Count)]
+  |                                 ^^^^^
+
+error: `action = Count` requires an integer field type, e.g. `u8`
+ --> tests/ui/action_count_non_integer.rs:7:26
+  |
+7 |     #[arg(long, action = ArgAction::Count)]
+  |                          ^^^^^^^^^^^^^^^^
