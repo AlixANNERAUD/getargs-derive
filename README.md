@@ -57,7 +57,7 @@ If you need more control (e.g. reusing an existing `Options`), use `parse` direc
 - [Positional and Optional Arguments][guide-positionals]: positional arguments and `Option<T>` fields.
 - [Argument Relations][guide-relations]: `conflicts_with`, `requires`, `required_unless_present` and argument groups.
 - [Value Validation][guide-validation]: `value_parser` functions and ranges, and `possible_values`.
-- [Generated Help][guide-help]: the `HELP` constant, `-h`/`--help` and `disable_help_flag`.
+- [Generated Help][guide-help]: the `HELP` and `LONG_HELP` constants, `-h`/`--help`, `disable_help_flag`, and help customization (hidden arguments, headings, ordering, extra text and wrapping).
 - [Version Flag][guide-version]: `#[command(version)]`, `-V`/`--version` and the `VERSION`/`VERSION_TEXT` constants.
 - [Error Handling][guide-errors]: the `Error` enum, its Clap-style messages and "did you mean" suggestions.
 - [Clap Compatibility][guide-clap]: what is shared with Clap, and what is not supported.

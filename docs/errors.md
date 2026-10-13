@@ -49,7 +49,7 @@ assert_eq!(error.to_string(), "the following required argument was not provided:
 | `MissingRequiredArgument { name, required_by }`       | An argument was given without an argument it `requires`.                                                    | `the following required argument was not provided: --output <OUTPUT> (required by '--compress')` |
 | `MissingOneOf(&'static [&'static str])`               | None of a set of arguments was given (`required_unless_present` or a `required` group).                     | `the following required arguments were not provided: <--config <CONFIG>\|--stdin>` |
 | `InvalidArguments`                                    | `getargs` reported an error kind this crate does not recognise (a future `getargs` release). Never returned with known `getargs` 0.5 releases. | `the arguments could not be parsed` |
-| `Help(&'static str)`                                  | Not a failure: `-h` or `--help` was given. Carries the generated help text. See [Generated Help][guide-help]. | the help text                                                   |
+| `Help(&'static str)`                                  | Not a failure: `-h` or `--help` was given. Carries the generated help text (`HELP` for `-h`, `LONG_HELP` for `--help`). See [Generated Help][guide-help]. | the help text                                                   |
 | `Version(&'static str)`                               | Not a failure: `-V` or `--version` was given with `#[command(version)]`. Carries the version line (`VERSION_TEXT`). See [Version Flag][guide-version]. | the version line                     |
 
 `Error::is_help()` and `Error::is_version()` tell these two outcomes apart from parse failures.

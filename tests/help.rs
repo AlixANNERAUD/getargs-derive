@@ -16,7 +16,7 @@ struct OnePositional<'a> {
 
 /// Copy files around.
 ///
-/// This second paragraph is only shown in long help, which is not generated.
+/// This second paragraph is only shown in long help.
 #[derive(Debug, GetArgs)]
 #[command(name = "copy")]
 struct HelpFull<'a> {
@@ -109,7 +109,7 @@ Options:
   -C <DIRECTORY>           [default: \"a dir\"]
       --offset <OFFSET>    [default: -3]
       --threads <THREADS>  [default: NonZeroU32 :: new(5).unwrap()]
-  -h, --help               Print help"
+  -h, --help               Print help (see more with '--help')"
     );
 }
 
@@ -159,9 +159,9 @@ fn help_empty_struct() {
 
 #[test]
 fn help_long_and_short_flags() {
-    for flag in ["-h", "--help"] {
+    for (flag, text) in [("-h", HelpFull::HELP), ("--help", HelpFull::LONG_HELP)] {
         let err = HelpFull::from_args([flag].into_iter()).unwrap_err();
-        assert_eq!(err, Error::Help(HelpFull::HELP));
+        assert_eq!(err, Error::Help(text));
         assert!(err.is_help());
     }
 }
@@ -169,7 +169,7 @@ fn help_long_and_short_flags() {
 #[test]
 fn help_takes_priority_over_missing_required() {
     let err = HelpFull::from_args(["-v", "--help"].into_iter()).unwrap_err();
-    assert_eq!(err, Error::Help(HelpFull::HELP));
+    assert_eq!(err, Error::Help(HelpFull::LONG_HELP));
     let err = RequiredOption::from_args(["--help"].into_iter()).unwrap_err();
     assert!(err.is_help());
 }

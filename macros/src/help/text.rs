@@ -29,6 +29,14 @@ impl Text {
         self.0.is_empty()
     }
 
+    pub(crate) fn as_static(&self) -> Option<&str> {
+        match self.0.as_slice() {
+            [] => Some(""),
+            [Segment::Text(text)] => Some(text),
+            _ => None,
+        }
+    }
+
     pub(crate) fn segments(self) -> Vec<Segment> {
         self.0
     }

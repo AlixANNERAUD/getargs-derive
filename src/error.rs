@@ -126,8 +126,9 @@ pub enum Error<'a> {
 
     /// Help was requested with `-h` or `--help`.
     ///
-    /// This is not a parse failure: the string is the generated help text (the struct's `HELP`
-    /// constant). Applications should print it to standard output and exit successfully.
+    /// This is not a parse failure: the string is the generated help text, the struct's `HELP`
+    /// constant for `-h` and its `LONG_HELP` constant for `--help`. Applications should print it
+    /// to standard output and exit successfully.
     /// It is never returned when help is disabled with `#[command(disable_help_flag)]`.
     Help(&'static str),
 
