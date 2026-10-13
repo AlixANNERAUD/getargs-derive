@@ -1,0 +1,5 @@
+error: `positional` cannot be combined with `short` or `long`
+ --> tests/ui/positional_with_name.rs:5:11
+  |
+5 |     #[arg(positional, long)]
+  |           ^^^^^^^^^^

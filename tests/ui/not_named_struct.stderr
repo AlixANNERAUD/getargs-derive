@@ -1,0 +1,17 @@
+error: GetArgs can only be derived for structs with named fields
+ --> tests/ui/not_named_struct.rs:4:1
+  |
+4 | enum Mode {
+  | ^^^^
+
+error: GetArgs requires a struct with named fields; tuple structs are not supported
+  --> tests/ui/not_named_struct.rs:10:17
+   |
+10 | struct Tuple<'a>(&'a str);
+   |                 ^^^^^^^^^
+
+error: GetArgs requires a struct with named fields; unit structs are not supported
+  --> tests/ui/not_named_struct.rs:13:8
+   |
+13 | struct Unit;
+   |        ^^^^

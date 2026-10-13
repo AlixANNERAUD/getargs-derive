@@ -1,0 +1,17 @@
+error: `short` cannot be `-`
+ --> tests/ui/invalid_short.rs:5:19
+  |
+5 |     #[arg(short = '-')]
+  |                   ^^^
+
+error: `short` cannot be whitespace
+ --> tests/ui/invalid_short.rs:7:19
+  |
+7 |     #[arg(short = ' ')]
+  |                   ^^^
+
+error: `short` expects a character literal, e.g. `short = 'o'`
+ --> tests/ui/invalid_short.rs:9:19
+  |
+9 |     #[arg(short = "v")]
+  |                   ^^^

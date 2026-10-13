@@ -1,0 +1,5 @@
+error: unknown `arg` attribute `help`; supported attributes are: `short`, `long`, `default_value`, `default_value_t`, `flag`, `positional`, `default` (legacy)
+ --> tests/ui/unknown_key.rs:5:17
+  |
+5 |     #[arg(long, help = "verbose output")]
+  |                 ^^^^
