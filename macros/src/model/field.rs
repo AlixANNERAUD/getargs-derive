@@ -1,15 +1,27 @@
-use super::attr::{parse_string, reject_value, require_value, set_once};
+mod defaults;
+mod help;
+mod kind;
+mod names;
+
+use super::attr::{Key, dispatch};
 use super::doc::short_doc;
 use super::errors::Errors;
 use super::types::{is_bool_type, is_str_reference_type, option_inner_type};
+use defaults::set_default;
 use proc_macro2::Span;
-use quote::ToTokens;
-use syn::{
-    Expr, Field, Ident, Lit, LitStr, Meta, Token, Type, ext::IdentExt, meta::ParseNestedMeta,
-    spanned::Spanned,
-};
+use syn::{Expr, Field, Ident, LitStr, Meta, Type, ext::IdentExt, spanned::Spanned};
 
-const SUPPORTED_ARG_KEYS: &str = "`short`, `long`, `help`, `value_name`, `default_value`, `default_value_t`, `flag`, `positional`, `default` (legacy)";
+const ARG_KEYS: &[Key<RawField>] = &[
+    Key::legacy("default", defaults::default),
+    Key::new("default_value", defaults::default_value),
+    Key::new("default_value_t", defaults::default_value_t),
+    Key::new("flag", kind::flag),
+    Key::new("help", help::help),
+    Key::new("long", names::long),
+    Key::new("positional", kind::positional),
+    Key::new("short", names::short),
+    Key::new("value_name", help::value_name),
+];
 
 pub(crate) enum FieldKind {
     Positional,
@@ -95,137 +107,6 @@ fn to_kebab_case(name: &str) -> String {
     name.replace('_', "-")
 }
 
-fn set_default(
-    slot: &mut Option<(DefaultSource, DefaultValue)>,
-    source: DefaultSource,
-    value: DefaultValue,
-    span: Span,
-) -> syn::Result<()> {
-    if let Some((existing, _)) = slot {
-        let message = if *existing == source {
-            format!("duplicate {} attribute", source.describe())
-        } else {
-            format!(
-                "conflicting default values: {} and {} cannot be used together; use only `default_value` or `default_value_t`",
-                existing.describe(),
-                source.describe()
-            )
-        };
-        return Err(syn::Error::new(span, message));
-    }
-    *slot = Some((source, value));
-    Ok(())
-}
-
-fn parse_arg_entry(meta: ParseNestedMeta, raw: &mut RawField) -> syn::Result<()> {
-    let key_span = meta.path.span();
-    let Some(key) = meta.path.get_ident().map(Ident::to_string) else {
-        let path = meta.path.to_token_stream().to_string().replace(' ', "");
-        return Err(meta.error(format!(
-            "unknown `arg` attribute `{path}`; supported attributes are: {SUPPORTED_ARG_KEYS}"
-        )));
-    };
-
-    match key.as_str() {
-        "short" => {
-            let value = if meta.input.peek(Token![=]) {
-                match meta.value()?.parse::<Lit>()? {
-                    Lit::Char(literal) => (Some(literal.value()), literal.span()),
-                    other => {
-                        return Err(syn::Error::new(
-                            other.span(),
-                            "`short` expects a character literal, e.g. `short = 'o'`",
-                        ));
-                    }
-                }
-            } else {
-                (None, key_span)
-            };
-            set_once(&mut raw.short, value, &meta)
-        }
-        "long" => {
-            let value = if meta.input.peek(Token![=]) {
-                match meta.value()?.parse::<Lit>()? {
-                    Lit::Str(literal) => (Some(literal.value()), literal.span()),
-                    other => {
-                        return Err(syn::Error::new(
-                            other.span(),
-                            "`long` expects a string literal, e.g. `long = \"output\"`",
-                        ));
-                    }
-                }
-            } else {
-                (None, key_span)
-            };
-            set_once(&mut raw.long, value, &meta)
-        }
-        "help" => {
-            let literal = parse_string(&meta, "help", "help = \"Print more output\"")?;
-            set_once(&mut raw.help, literal.value(), &meta)
-        }
-        "value_name" => {
-            let literal = parse_string(&meta, "value_name", "value_name = \"FILE\"")?;
-            let value = literal.value();
-            if value.is_empty() || value.contains(char::is_whitespace) {
-                return Err(syn::Error::new(
-                    literal.span(),
-                    "`value_name` cannot be empty or contain whitespace",
-                ));
-            }
-            set_once(&mut raw.value_name, (value, literal.span()), &meta)
-        }
-        "flag" => {
-            reject_value(&meta, "flag")?;
-            set_once(&mut raw.flag, key_span, &meta)
-        }
-        "positional" => {
-            reject_value(&meta, "positional")?;
-            set_once(&mut raw.positional, key_span, &meta)
-        }
-        "default_value" => {
-            let literal = match require_value(&meta, "default_value", "default_value = \"4\"")?
-                .parse::<Lit>()?
-            {
-                Lit::Str(literal) => literal,
-                other => {
-                    return Err(syn::Error::new(
-                        other.span(),
-                        "`default_value` expects a string literal; use `default_value_t = expr` for a typed value",
-                    ));
-                }
-            };
-            set_default(
-                &mut raw.default,
-                DefaultSource::DefaultValue,
-                DefaultValue::Literal(literal),
-                key_span,
-            )
-        }
-        "default_value_t" => {
-            let expr: Expr =
-                require_value(&meta, "default_value_t", "default_value_t = 4")?.parse()?;
-            set_default(
-                &mut raw.default,
-                DefaultSource::DefaultValueT,
-                DefaultValue::Expr(expr),
-                key_span,
-            )
-        }
-        "default" => {
-            let expr: Expr = require_value(&meta, "default", "default = 4")?.parse()?;
-            set_default(
-                &mut raw.default,
-                DefaultSource::ArgDefault,
-                DefaultValue::Expr(expr),
-                key_span,
-            )
-        }
-        _ => Err(meta.error(format!(
-            "unknown `arg` attribute `{key}`; supported attributes are: {SUPPORTED_ARG_KEYS}"
-        ))),
-    }
-}
-
 fn parse_raw_field(field: &Field) -> syn::Result<RawField> {
     let mut raw = RawField::default();
     let mut errors = Errors::default();
@@ -239,7 +120,9 @@ fn parse_raw_field(field: &Field) -> syn::Result<RawField> {
                 ));
                 continue;
             }
-            if let Err(error) = attr.parse_nested_meta(|meta| parse_arg_entry(meta, &mut raw)) {
+            if let Err(error) =
+                attr.parse_nested_meta(|meta| dispatch(meta, "arg", ARG_KEYS, &mut raw))
+            {
                 errors.push(error);
             }
         } else if attr.path().is_ident("default") {

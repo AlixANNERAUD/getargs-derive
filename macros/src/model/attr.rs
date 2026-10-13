@@ -1,5 +1,64 @@
 use quote::ToTokens;
-use syn::{Lit, LitStr, Token, meta::ParseNestedMeta};
+use syn::{Ident, Lit, LitStr, Token, meta::ParseNestedMeta};
+
+pub(super) type Parser<T> = fn(&ParseNestedMeta, &mut T) -> syn::Result<()>;
+
+pub(super) struct Key<T> {
+    name: &'static str,
+    legacy: bool,
+    parse: Parser<T>,
+}
+
+impl<T> Key<T> {
+    pub(super) const fn new(name: &'static str, parse: Parser<T>) -> Self {
+        Self {
+            name,
+            legacy: false,
+            parse,
+        }
+    }
+
+    pub(super) const fn legacy(name: &'static str, parse: Parser<T>) -> Self {
+        Self {
+            name,
+            legacy: true,
+            parse,
+        }
+    }
+}
+
+fn supported_keys<T>(keys: &[Key<T>]) -> String {
+    keys.iter()
+        .map(|key| match key.legacy {
+            true => format!("`{}` (legacy)", key.name),
+            false => format!("`{}`", key.name),
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+pub(super) fn dispatch<T>(
+    meta: ParseNestedMeta,
+    attribute: &str,
+    keys: &[Key<T>],
+    target: &mut T,
+) -> syn::Result<()> {
+    let key = meta.path.get_ident().map(Ident::to_string);
+    match key
+        .as_deref()
+        .and_then(|key| keys.iter().find(|entry| entry.name == key))
+    {
+        Some(entry) => (entry.parse)(&meta, target),
+        None => {
+            let path =
+                key.unwrap_or_else(|| meta.path.to_token_stream().to_string().replace(' ', ""));
+            Err(meta.error(format!(
+                "unknown `{attribute}` attribute `{path}`; supported attributes are: {}",
+                supported_keys(keys)
+            )))
+        }
+    }
+}
 
 pub(super) fn set_once<T>(
     slot: &mut Option<T>,

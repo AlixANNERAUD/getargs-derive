@@ -1,10 +1,18 @@
-use super::attr::{parse_string, reject_value, set_once};
+mod help;
+mod text;
+mod version;
+
+use super::attr::{Key, dispatch};
 use super::doc::short_doc;
 use super::errors::Errors;
-use quote::ToTokens;
-use syn::{DeriveInput, Ident, Meta, Token, meta::ParseNestedMeta};
+use syn::{DeriveInput, Meta};
 
-const SUPPORTED_COMMAND_KEYS: &str = "`name`, `about`, `version`, `disable_help_flag`";
+const COMMAND_KEYS: &[Key<RawContainer>] = &[
+    Key::new("about", text::about),
+    Key::new("disable_help_flag", help::disable_help_flag),
+    Key::new("name", text::name),
+    Key::new("version", version::version),
+];
 
 pub(crate) struct ContainerModel {
     pub(crate) name: Option<String>,
@@ -18,62 +26,16 @@ pub(crate) enum Version {
     Literal(String),
 }
 
-fn parse_command_entry(
-    meta: ParseNestedMeta,
-    name: &mut Option<String>,
-    about: &mut Option<String>,
-    version: &mut Option<Version>,
-    disable_help_flag: &mut Option<()>,
-) -> syn::Result<()> {
-    let Some(key) = meta.path.get_ident().map(Ident::to_string) else {
-        let path = meta.path.to_token_stream().to_string().replace(' ', "");
-        return Err(meta.error(format!(
-            "unknown `command` attribute `{path}`; supported attributes are: {SUPPORTED_COMMAND_KEYS}"
-        )));
-    };
-
-    match key.as_str() {
-        "name" => {
-            let literal = parse_string(&meta, "name", "name = \"tool\"")?;
-            let value = literal.value();
-            if value.is_empty() {
-                return Err(syn::Error::new(literal.span(), "`name` cannot be empty"));
-            }
-            set_once(name, value, &meta)
-        }
-        "about" => {
-            let literal = parse_string(&meta, "about", "about = \"Does things\"")?;
-            set_once(about, literal.value(), &meta)
-        }
-        "version" => {
-            let value = if meta.input.peek(Token![=]) {
-                let literal = parse_string(&meta, "version", "version = \"1.0.0\"")?;
-                let value = literal.value();
-                if value.trim().is_empty() {
-                    return Err(syn::Error::new(literal.span(), "`version` cannot be empty"));
-                }
-                Version::Literal(value)
-            } else {
-                reject_value(&meta, "version")?;
-                Version::Package
-            };
-            set_once(version, value, &meta)
-        }
-        "disable_help_flag" => {
-            reject_value(&meta, "disable_help_flag")?;
-            set_once(disable_help_flag, (), &meta)
-        }
-        _ => Err(meta.error(format!(
-            "unknown `command` attribute `{key}`; supported attributes are: {SUPPORTED_COMMAND_KEYS}"
-        ))),
-    }
+#[derive(Default)]
+struct RawContainer {
+    name: Option<String>,
+    about: Option<String>,
+    version: Option<Version>,
+    disable_help_flag: Option<()>,
 }
 
 pub(super) fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel> {
-    let mut name = None;
-    let mut about = None;
-    let mut version = None;
-    let mut disable_help_flag = None;
+    let mut raw = RawContainer::default();
     let mut errors = Errors::default();
 
     for attr in &input.attrs {
@@ -87,24 +49,17 @@ pub(super) fn parse_container(input: &DeriveInput) -> syn::Result<ContainerModel
             ));
             continue;
         }
-        let result = attr.parse_nested_meta(|meta| {
-            parse_command_entry(
-                meta,
-                &mut name,
-                &mut about,
-                &mut version,
-                &mut disable_help_flag,
-            )
-        });
+        let result =
+            attr.parse_nested_meta(|meta| dispatch(meta, "command", COMMAND_KEYS, &mut raw));
         if let Err(error) = result {
             errors.push(error);
         }
     }
 
     errors.finish(ContainerModel {
-        name,
-        about: about.or_else(|| short_doc(&input.attrs)),
-        version,
-        disable_help_flag: disable_help_flag.is_some(),
+        name: raw.name,
+        about: raw.about.or_else(|| short_doc(&input.attrs)),
+        version: raw.version,
+        disable_help_flag: raw.disable_help_flag.is_some(),
     })
 }
