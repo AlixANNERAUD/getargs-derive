@@ -1,4 +1,4 @@
-use super::{longs, options, positionals, shorts, summary};
+use super::{Node, longs, options, positionals, shorts, summary, tree};
 use crate::{ArgInfo, CommandInfo};
 use std::string::String;
 use std::vec::Vec;
@@ -51,9 +51,14 @@ fn names(arg: &ArgInfo) -> Vec<String> {
     names
 }
 
-fn synopsis(command: &CommandInfo) -> String {
-    let mut synopsis = bold(command.name);
-    for arg in options(command) {
+fn path(node: &Node) -> String {
+    let names: Vec<&str> = node.path.iter().map(|command| command.name).collect();
+    names.join(" ")
+}
+
+fn synopsis(node: &Node) -> String {
+    let mut synopsis = bold(&path(node));
+    for arg in options(node) {
         let mut names = names(arg).join("|");
         if arg.takes_value() {
             names.push(' ');
@@ -65,7 +70,7 @@ fn synopsis(command: &CommandInfo) -> String {
             synopsis.push_str(&std::format!(" [{names}]"));
         }
     }
-    for arg in positionals(command) {
+    for arg in positionals(node) {
         let mut value = italic(arg.value_name);
         if arg.last {
             value = std::format!("\\-\\- {value}");
@@ -73,7 +78,45 @@ fn synopsis(command: &CommandInfo) -> String {
         synopsis.push(' ');
         synopsis.push_str(&positional(arg, value));
     }
+    if !node.command.commands.is_empty() {
+        let command = italic("COMMAND");
+        if node.command.subcommand_required {
+            synopsis.push_str(&std::format!(" <{command}>"));
+        } else {
+            synopsis.push_str(&std::format!(" [{command}]"));
+        }
+    }
     synopsis
+}
+
+fn subcommands_section(output: &mut String, command: &CommandInfo) {
+    let nodes = tree(command);
+    let visible: Vec<&Node> = nodes[1..]
+        .iter()
+        .filter(|node| !node.path.iter().any(|command| command.hidden))
+        .collect();
+    if visible.is_empty() {
+        return;
+    }
+    output.push_str(".SH SUBCOMMANDS\n");
+    for node in visible {
+        output.push_str(".TP\n");
+        output.push_str(&bold(&path(node)));
+        output.push('\n');
+        let about = summary(node.command.about);
+        if !about.is_empty() {
+            text(output, about);
+            output.push_str(".br\n");
+        }
+        if !node.command.visible_aliases.is_empty() {
+            output.push_str(&std::format!(
+                "[aliases: {}]\n.br\n",
+                escape(&node.command.visible_aliases.join(", "))
+            ));
+        }
+        output.push_str(&synopsis(node));
+        output.push('\n');
+    }
 }
 
 fn positional(arg: &ArgInfo, value: String) -> String {
@@ -118,6 +161,7 @@ fn entry(output: &mut String, header: String, arg: &ArgInfo) {
 
 pub(super) fn render(command: &CommandInfo) -> String {
     let name = command.name;
+    let root = Node::root(command);
     let mut output = String::new();
     match command.version {
         Some(version) => output.push_str(&std::format!(
@@ -134,7 +178,7 @@ pub(super) fn render(command: &CommandInfo) -> String {
         about => output.push_str(&std::format!("{} \\- {}\n", escape(name), escape(about))),
     }
     output.push_str(".SH SYNOPSIS\n");
-    output.push_str(&synopsis(command));
+    output.push_str(&synopsis(&root));
     output.push('\n');
     let description = match command.long_about {
         "" => command.about,
@@ -144,9 +188,9 @@ pub(super) fn render(command: &CommandInfo) -> String {
         output.push_str(".SH DESCRIPTION\n");
         text(&mut output, description);
     }
-    if positionals(command).next().is_some() {
+    if positionals(&root).next().is_some() {
         output.push_str(".SH ARGUMENTS\n");
-        for arg in positionals(command) {
+        for arg in positionals(&root) {
             let header = match (arg.required, arg.multiple) {
                 (true, true) => std::format!("<{}>...", italic(arg.value_name)),
                 (true, false) => std::format!("<{}>", italic(arg.value_name)),
@@ -156,9 +200,9 @@ pub(super) fn render(command: &CommandInfo) -> String {
             entry(&mut output, header, arg);
         }
     }
-    if options(command).next().is_some() {
+    if options(&root).next().is_some() {
         output.push_str(".SH OPTIONS\n");
-        for arg in options(command) {
+        for arg in options(&root) {
             let mut header = names(arg).join(", ");
             if arg.takes_value() {
                 header.push_str(&std::format!("={}", italic(arg.value_name)));
@@ -166,6 +210,7 @@ pub(super) fn render(command: &CommandInfo) -> String {
             entry(&mut output, header, arg);
         }
     }
+    subcommands_section(&mut output, command);
     if let Some(version) = command.version {
         output.push_str(".SH VERSION\n");
         output.push_str(&std::format!("v{}\n", escape(version)));

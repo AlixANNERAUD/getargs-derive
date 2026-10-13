@@ -69,6 +69,9 @@ fn arg_info(field: &FieldModel) -> TokenStream {
     if field.parsing.last {
         calls.push(quote! { .last(true) });
     }
+    if field.parsing.global {
+        calls.push(quote! { .global(true) });
+    }
     quote! {
         getargs_derive::ArgInfo::new(#id, getargs_derive::ArgKind::#kind) #(#calls)*
     }
@@ -148,6 +151,14 @@ pub(super) fn command_impl(input: &DeriveInput, model: &Model) -> TokenStream {
     }
     if let Some(version) = version_value(container) {
         calls.push(quote! { .version(#version) });
+    }
+    if model.subcommand.is_some() {
+        calls.push(quote! {
+            .commands(<Self as getargs_derive::__private::Args<'static>>::COMMAND.infos)
+            .subcommand_required(
+                <Self as getargs_derive::__private::Args<'static>>::COMMAND.subcommand_required,
+            )
+        });
     }
     quote! {
         impl #impl_generics getargs_derive::Command for #name #ty_generics #where_clause {

@@ -31,9 +31,14 @@ fn static_lifetimes(tokens: TokenStream) -> TokenStream {
     output.into_iter().collect()
 }
 
-pub(super) fn static_args(ty: impl ToTokens) -> TokenStream {
+pub(crate) fn static_args(ty: impl ToTokens) -> TokenStream {
     let ty = static_lifetimes(ty.to_token_stream());
     quote! { <#ty as getargs_derive::__private::Args<'static>> }
+}
+
+pub(super) fn static_commands(ty: impl ToTokens) -> TokenStream {
+    let ty = static_lifetimes(ty.to_token_stream());
+    quote! { <#ty as getargs_derive::__private::Subcommand<'static>> }
 }
 
 pub(super) fn static_type(input: &DeriveInput) -> TokenStream {
@@ -259,12 +264,66 @@ fn last_checks(model: &Model) -> Vec<TokenStream> {
     checks
 }
 
-pub(super) fn checks(model: &Model) -> TokenStream {
-    if model.flattened.is_empty() {
-        return quote! {};
-    }
+fn global_checks(model: &Model) -> Vec<TokenStream> {
+    let Some(subcommand) = &model.subcommand else {
+        return Vec::new();
+    };
+    let commands = static_commands(&subcommand.ty);
     let mut checks = Vec::new();
+    for field in model.fields.iter().filter(|field| field.parsing.global) {
+        let span = field.ident.span();
+        let shorts = field
+            .short
+            .into_iter()
+            .chain(field.short_aliases.iter().map(|alias| alias.name));
+        for short in shorts {
+            let message = format!(
+                "global option `-{short}` of field `{}` is also used by a subcommand",
+                field.name
+            );
+            checks.push(quote_spanned! {span=>
+                const _: () = ::core::assert!(
+                    !getargs_derive::__private::commands_use_short(#commands::COMMANDS, #short),
+                    #message,
+                );
+            });
+        }
+        let longs = field
+            .long
+            .iter()
+            .chain(field.long_aliases.iter().map(|alias| &alias.name));
+        for long in longs {
+            let message = format!(
+                "global option `--{long}` of field `{}` is also used by a subcommand",
+                field.name
+            );
+            checks.push(quote_spanned! {span=>
+                const _: () = ::core::assert!(
+                    !getargs_derive::__private::commands_use_long(#commands::COMMANDS, #long),
+                    #message,
+                );
+            });
+        }
+    }
+    checks
+}
+
+pub(super) fn checks(model: &Model) -> TokenStream {
+    let mut checks = global_checks(model);
+    if model.flattened.is_empty() {
+        return quote! { #(#checks)* };
+    }
     for (index, (_, flatten)) in model.flattened.iter().enumerate() {
+        let args = static_args(&flatten.ty);
+        let message = format!(
+            "flattened field `{}` has a `#[command(subcommand)]` field, which cannot be flattened",
+            flatten.name
+        );
+        checks.push(check(
+            flatten,
+            quote! { #args::COMMAND.commands.is_empty() },
+            message,
+        ));
         checks.extend(own_checks(model, flatten));
         for (_, previous) in &model.flattened[..index] {
             checks.extend(pair_checks(previous, flatten));

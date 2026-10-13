@@ -29,8 +29,17 @@ pub struct CommandInfo {
     /// The arguments, flattened structs included, in field order, followed by the generated
     /// `--help` and `--version` flags.
     pub args: &'static [ArgInfo],
-    /// The subcommands. Always empty for now.
+    /// The subcommands, from a `#[command(subcommand)]` field, in variant order. Their
+    /// [`args`](Self::args) do not repeat the `global` arguments of their parents.
     pub commands: &'static [CommandInfo],
+    /// Whether one of the [`commands`](Self::commands) must be given.
+    pub subcommand_required: bool,
+    /// The aliases of a subcommand listed in the help.
+    pub visible_aliases: &'static [&'static str],
+    /// The aliases of a subcommand hidden from the help.
+    pub aliases: &'static [&'static str],
+    /// Whether the subcommand is hidden from the help.
+    pub hidden: bool,
 }
 
 impl CommandInfo {
@@ -43,7 +52,35 @@ impl CommandInfo {
             version: None,
             args: &[],
             commands: &[],
+            subcommand_required: false,
+            visible_aliases: &[],
+            aliases: &[],
+            hidden: false,
         }
+    }
+
+    /// Sets [`subcommand_required`](Self::subcommand_required).
+    pub const fn subcommand_required(mut self, required: bool) -> Self {
+        self.subcommand_required = required;
+        self
+    }
+
+    /// Sets [`visible_aliases`](Self::visible_aliases).
+    pub const fn visible_aliases(mut self, aliases: &'static [&'static str]) -> Self {
+        self.visible_aliases = aliases;
+        self
+    }
+
+    /// Sets [`aliases`](Self::aliases).
+    pub const fn aliases(mut self, aliases: &'static [&'static str]) -> Self {
+        self.aliases = aliases;
+        self
+    }
+
+    /// Sets [`hidden`](Self::hidden).
+    pub const fn hidden(mut self, hidden: bool) -> Self {
+        self.hidden = hidden;
+        self
     }
 
     /// Sets [`about`](Self::about).
@@ -133,6 +170,9 @@ pub struct ArgInfo {
     pub multiple: bool,
     /// Whether the positional argument is only filled after `--`.
     pub last: bool,
+    /// Whether the option is `global`: also accepted after the subcommands of its command, and
+    /// listed in their help and completions.
+    pub global: bool,
 }
 
 impl ArgInfo {
@@ -156,6 +196,7 @@ impl ArgInfo {
             required: false,
             multiple: false,
             last: false,
+            global: false,
         }
     }
 
@@ -246,6 +287,12 @@ impl ArgInfo {
     /// Sets [`last`](Self::last).
     pub const fn last(mut self, last: bool) -> Self {
         self.last = last;
+        self
+    }
+
+    /// Sets [`global`](Self::global).
+    pub const fn global(mut self, global: bool) -> Self {
+        self.global = global;
         self
     }
 

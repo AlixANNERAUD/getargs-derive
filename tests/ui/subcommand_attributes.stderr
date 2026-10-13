@@ -1,0 +1,23 @@
+error: unknown `command` attribute `version`; supported attributes are: `about`, `after_help`, `alias`, `aliases`, `allow_negative_numbers`, `before_help`, `disable_help_flag`, `group`, `hide`, `long_about`, `max_term_width`, `name`, `visible_alias`, `visible_aliases`
+  --> tests/ui/subcommand_attributes.rs:11:15
+   |
+11 |     #[command(version)]
+   |               ^^^^^^^
+
+error: unknown `command` attribute `before_help`; supported attributes are: `about`, `alias`, `aliases`, `hide`, `long_about`, `name`, `visible_alias`, `visible_aliases`
+  --> tests/ui/subcommand_attributes.rs:13:15
+   |
+13 |     #[command(before_help = "Read this")]
+   |               ^^^^^^^^^^^
+
+error: attributes are not supported on the field of a newtype subcommand variant; put `#[command(...)]` on the variant and `#[arg(...)]` on the fields of the wrapped struct
+  --> tests/ui/subcommand_attributes.rs:15:10
+   |
+15 |     Test(#[arg(short)] Build),
+   |          ^^^^^^^^^^^^^
+
+error: `hide` does not take a value
+  --> tests/ui/subcommand_attributes.rs:16:15
+   |
+16 |     #[command(hide = true)]
+   |               ^^^^

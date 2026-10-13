@@ -81,6 +81,22 @@ pub enum Error<'a> {
     /// The slice lists the arguments, e.g. `["--config <CONFIG>", "--stdin"]`.
     MissingOneOf(&'static [&'static str]),
 
+    /// A required subcommand was not given.
+    ///
+    /// The slice lists the visible subcommands, e.g. `["add", "remove"]`. It is only returned for
+    /// a `#[command(subcommand)]` field that is not an `Option`.
+    MissingSubcommand(&'static [&'static str]),
+
+    /// A positional argument was given where a subcommand was expected, and it is not the name
+    /// or an alias of any subcommand.
+    UnknownSubcommand {
+        /// The unknown subcommand, as written by the user.
+        name: &'a str,
+        /// The closest visible subcommand name or alias when the unknown one looks like a typo of
+        /// it, e.g. `Some("remove")` for `remov`.
+        suggestion: Option<&'static str>,
+    },
+
     /// The underlying `getargs` parser reported an error that this crate does not recognise.
     ///
     /// `getargs` may add error kinds in a compatible release; they are reported as this variant
@@ -153,8 +169,9 @@ pub enum Error<'a> {
     /// Help was requested with `-h` or `--help`.
     ///
     /// This is not a parse failure: the string is the generated help text, the struct's `HELP`
-    /// constant for `-h` and its `LONG_HELP` constant for `--help`. Applications should print it
-    /// to standard output and exit successfully.
+    /// constant for `-h` and its `LONG_HELP` constant for `--help`. After a subcommand, it is the
+    /// help of that subcommand instead. Applications should print it to standard output and exit
+    /// successfully.
     /// It is never returned when help is disabled with `#[command(disable_help_flag)]`.
     Help(&'static str),
 
@@ -227,6 +244,25 @@ impl core::fmt::Display for Error<'_> {
                     f.write_str(name)?;
                 }
                 f.write_str(">")
+            }
+            Error::MissingSubcommand(names) => {
+                f.write_str("a subcommand is required but one was not provided\n  [subcommands: ")?;
+                for (index, name) in names.iter().enumerate() {
+                    if index > 0 {
+                        f.write_str(", ")?;
+                    }
+                    f.write_str(name)?;
+                }
+                f.write_str("]")
+            }
+            Error::UnknownSubcommand { name, suggestion } => {
+                write!(f, "unrecognized subcommand '{name}'")?;
+                match suggestion {
+                    Some(suggestion) => {
+                        write!(f, "\n\n  tip: a similar subcommand exists: '{suggestion}'")
+                    }
+                    None => Ok(()),
+                }
             }
             Error::InvalidArguments => f.write_str("the arguments could not be parsed"),
             Error::MissingOptionValue(name) => {

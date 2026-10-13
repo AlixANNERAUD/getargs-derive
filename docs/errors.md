@@ -50,8 +50,10 @@ assert_eq!(error.to_string(), "the following required argument was not provided:
 | `ArgumentConflict { name, other }`                    | Two arguments that cannot be used together were given (`conflicts_with` or an exclusive group). See [Argument Relations][guide-relations]. | `the argument '--quiet' cannot be used with '--verbose'` |
 | `MissingRequiredArgument { name, required_by }`       | An argument was given without an argument it `requires`.                                                    | `the following required argument was not provided: --output <OUTPUT> (required by '--compress')` |
 | `MissingOneOf(&'static [&'static str])`               | None of a set of arguments was given (`required_unless_present` or a `required` group).                     | `the following required arguments were not provided: <--config <CONFIG>\|--stdin>` |
+| `MissingSubcommand(&'static [&'static str])`          | A required subcommand was not given. Lists the visible subcommands. See [Subcommands][guide-subcommands].   | `a subcommand is required but one was not provided`, followed by a `[subcommands: add, remove]` line |
+| `UnknownSubcommand { name: &'a str, suggestion }`     | A positional argument where a subcommand was expected is not a subcommand name or alias. `suggestion` is the closest visible name or alias, if any. | `unrecognized subcommand 'stats'`, followed by a `tip: a similar subcommand exists: 'status'` line when there is a suggestion |
 | `InvalidArguments`                                    | `getargs` reported an error kind this crate does not recognise (a future `getargs` release). Never returned with known `getargs` 0.5 releases. | `the arguments could not be parsed` |
-| `Help(&'static str)`                                  | Not a failure: `-h` or `--help` was given. Carries the generated help text (`HELP` for `-h`, `LONG_HELP` for `--help`). See [Generated Help][guide-help]. | the help text                                                   |
+| `Help(&'static str)`                                  | Not a failure: `-h` or `--help` was given. Carries the generated help text (`HELP` for `-h`, `LONG_HELP` for `--help`), or the help of the subcommand when given after one. See [Generated Help][guide-help]. | the help text                                                   |
 | `Version(&'static str)`                               | Not a failure: `-V` or `--version` was given with `#[command(version)]`. Carries the version line (`VERSION_TEXT`). See [Version Flag][guide-version]. | the version line                     |
 
 `Error::is_help()` and `Error::is_version()` tell these two outcomes apart from parse failures.
@@ -62,7 +64,8 @@ when there is none) followed by `<VALUE_NAME>` for a named option (`--jobs <JOBS
 
 Suggestions are computed without allocation against the struct's long option names and [long aliases][guide-aliases], including `help` unless the help flag is disabled and `version`
 when the version flag is enabled, using the edit distance with transpositions: a name is suggested when the distance is at most a third of the longer
-of the two names. Short options never get suggestions.
+of the two names. Short options never get suggestions. After a subcommand, unknown long options are matched against the names of that
+subcommand, and unknown subcommands against the visible names and aliases of the subcommands.
 
 Because errors borrow from the arguments, they must be handled while the arguments are alive. When the arguments are string literals the error is `Error<'static>`
 and can be returned from `main`; with `std::env::args()`, collect the arguments first and report the error before they are dropped,
@@ -72,5 +75,6 @@ as shown in [Generated Help][guide-help].
 [guide-collections]: collections.md
 [guide-help]: help.md
 [guide-relations]: relations.md
+[guide-subcommands]: subcommands.md
 [guide-validation]: validation.md
 [guide-version]: version.md

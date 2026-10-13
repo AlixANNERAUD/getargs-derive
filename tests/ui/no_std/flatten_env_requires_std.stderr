@@ -1,4 +1,4 @@
-error[E0277]: a flattened struct reads environment variables, which requires the `std` feature of `getargs-derive`
+error[E0277]: a flattened struct or a subcommand reads environment variables, which requires the `std` feature of `getargs-derive`
   --> tests/ui/no_std/flatten_env_requires_std.rs:17:28
    |
 17 |     let _ = Cli::from_args(["--port", "80"].into_iter());

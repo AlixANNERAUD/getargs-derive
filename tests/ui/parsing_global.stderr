@@ -1,5 +1,11 @@
-error: unknown `arg` attribute `global`; supported attributes are: `action`, `alias`, `aliases`, `allow_hyphen_values`, `allow_negative_numbers`, `conflicts_with`, `default_value`, `default_value_t`, `default_values`, `display_order`, `env`, `group`, `help`, `help_heading`, `hide`, `last`, `long`, `long_help`, `num_args`, `possible_values`, `required_unless_present`, `requires`, `short`, `short_alias`, `short_aliases`, `value_delimiter`, `value_enum`, `value_name`, `value_parser`, `visible_alias`, `visible_aliases`, `visible_short_alias`, `visible_short_aliases`
- --> tests/ui/parsing_global.rs:5:24
+error: `global` can only be used on options and flags; positional arguments of a parent are not accepted after its subcommand
+ --> tests/ui/parsing_global.rs:5:20
   |
-5 |     #[arg(short, long, global = true)]
-  |                        ^^^^^^
+5 |     #[arg(global = true)]
+  |                    ^^^^
+
+error: `global` expects a boolean literal, e.g. `global = true`
+ --> tests/ui/parsing_global.rs:7:33
+  |
+7 |     #[arg(short, long, global = "yes")]
+  |                                 ^^^^^

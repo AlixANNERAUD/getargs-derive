@@ -55,6 +55,37 @@ fn merged_help(
 
 pub(super) fn help_items(input: &DeriveInput, model: &Model) -> TokenStream {
     let container = &model.container;
+    if model.subcommand.is_some() {
+        let root = static_self(input);
+        return quote! {
+            #[doc(hidden)]
+            pub const __HELPS: &'static [&'static str] = {
+                const ROOT: getargs_derive::__private::CommandHelp = #root::COMMAND;
+                const NODES: usize = getargs_derive::__private::nodes(&ROOT);
+                const LENGTH: usize = getargs_derive::__private::tree_len(&ROOT);
+                const BYTES: [u8; LENGTH] = getargs_derive::__private::tree(&ROOT);
+                const MARKS: [usize; 4 * NODES] = getargs_derive::__private::tree_marks(&ROOT);
+                const HELPS: [&'static str; 2 * NODES] =
+                    getargs_derive::__private::tree_helps(&BYTES, &MARKS);
+                &HELPS
+            };
+
+            /// Help text generated at compile time from the struct, its fields, its subcommands and
+            /// their documentation.
+            ///
+            /// Returned in [`Error::Help`](getargs_derive::Error::Help) when `-h` is given before
+            /// the subcommand.
+            pub const HELP: &'static str = Self::__HELPS[0];
+
+            /// Long help text generated at compile time, using the full doc comments, `long_about`
+            /// and `long_help`.
+            ///
+            /// Returned in [`Error::Help`](getargs_derive::Error::Help) when `--help` is given
+            /// before the subcommand. It is the same string as [`HELP`](Self::HELP) when no long
+            /// help text is defined.
+            pub const LONG_HELP: &'static str = Self::__HELPS[1];
+        };
+    }
     let (help, long_help) = if model.flattened.is_empty() {
         let help = help_text(container, &model.fields, Mode::Short);
         let long_help = if has_long_help(container, &model.fields) {

@@ -1,7 +1,9 @@
 use super::env::env_lookup;
 use super::parsing;
 use super::validation::convert;
-use crate::model::{DefaultValue, FieldKind, FieldModel, FlagAction, FlattenModel, Slot};
+use crate::model::{
+    DefaultValue, FieldKind, FieldModel, FlagAction, FlattenModel, Slot, SubcommandModel,
+};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, Index, Type};
@@ -17,6 +19,13 @@ pub(super) struct FieldTokens {
     pub(super) filled: Vec<TokenStream>,
     pub(super) finalizers: Vec<TokenStream>,
     pub(super) field_builds: Vec<TokenStream>,
+    pub(super) global_arms: Vec<TokenStream>,
+    pub(super) global_steps: Vec<TokenStream>,
+    pub(super) subcommand: Option<Index>,
+}
+
+pub(super) fn subcommand_trait(ty: &Type) -> TokenStream {
+    quote! { <#ty as getargs_derive::__private::Subcommand<'__getargs>> }
 }
 
 pub(super) fn option_pattern(field: &FieldModel) -> TokenStream {
@@ -86,6 +95,17 @@ impl FieldTokens {
                 __argument,
                 __options,
                 __context.child(__last, #negative_numbers, !(#earlier)),
+                __globals,
+            )? {
+                return core::result::Result::Ok(true);
+            }
+        });
+        self.global_steps.push(quote! {
+            if #args::try_global(
+                &mut __state.#index,
+                __argument,
+                __options,
+                __context.child(false, #negative_numbers, false),
             )? {
                 return core::result::Result::Ok(true);
             }
@@ -97,6 +117,47 @@ impl FieldTokens {
         self.field_builds
             .push(quote! { #field_ident: #value_ident });
         self.value_idents.push(value_ident);
+    }
+
+    fn push_option_arm(&mut self, field: &FieldModel, arm: TokenStream) {
+        if field.parsing.global {
+            self.global_arms.push(arm.clone());
+        }
+        self.option_match_arms.push(arm);
+    }
+
+    pub(super) fn push_subcommand(&mut self, subcommand: &SubcommandModel) {
+        let index = Index::from(self.state_types.len());
+        let field_ident = &subcommand.ident;
+        let value_ident = format_ident!("__value_{}", subcommand.name);
+        let commands = subcommand_trait(&subcommand.ty);
+
+        self.state_types
+            .push(quote! { core::option::Option<#commands::State> });
+        self.initializers
+            .push(quote! { core::option::Option::None });
+        let missing = if subcommand.optional {
+            quote! { core::option::Option::None }
+        } else {
+            quote! {
+                return Err(getargs_derive::Error::MissingSubcommand(#commands::VISIBLE))
+            }
+        };
+        let found = if subcommand.optional {
+            quote! { core::option::Option::Some(#commands::finish(state, __getargs_env)?) }
+        } else {
+            quote! { #commands::finish(state, __getargs_env)? }
+        };
+        self.finalizers.push(quote! {
+            let #value_ident = match #value_ident {
+                core::option::Option::Some(state) => #found,
+                core::option::Option::None => #missing,
+            };
+        });
+        self.field_builds
+            .push(quote! { #field_ident: #value_ident });
+        self.value_idents.push(value_ident);
+        self.subcommand = Some(index);
     }
 
     fn push_arg(&mut self, field: &FieldModel) {
@@ -129,12 +190,15 @@ impl FieldTokens {
                         }
                     },
                 };
-                self.option_match_arms.push(quote! {
-                    #pattern => {
-                        #slot = core::option::Option::Some(#update);
-                        return core::result::Result::Ok(true);
-                    }
-                });
+                self.push_option_arm(
+                    field,
+                    quote! {
+                        #pattern => {
+                            #slot = core::option::Option::Some(#update);
+                            return core::result::Result::Ok(true);
+                        }
+                    },
+                );
             }
             FieldKind::Option => {
                 let pattern = option_pattern(field);
@@ -144,13 +208,16 @@ impl FieldTokens {
                     field,
                     quote! { getargs_derive::Error::MissingOptionValue(#error_name) },
                 );
-                self.option_match_arms.push(quote! {
-                    #pattern => {
-                        let value = #value;
-                        #slot = core::option::Option::Some(#parsed);
-                        return core::result::Result::Ok(true);
-                    }
-                });
+                self.push_option_arm(
+                    field,
+                    quote! {
+                        #pattern => {
+                            let value = #value;
+                            #slot = core::option::Option::Some(#parsed);
+                            return core::result::Result::Ok(true);
+                        }
+                    },
+                );
             }
             FieldKind::Positional => {
                 let parsed = convert(field, quote! { value }, &field.error_name());

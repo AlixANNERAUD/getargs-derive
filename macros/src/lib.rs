@@ -6,6 +6,7 @@
 mod expand;
 mod help;
 mod model;
+mod subcommand;
 mod value_enum;
 
 use proc_macro::TokenStream;
@@ -24,8 +25,26 @@ use syn::{DeriveInput, parse_macro_input};
 #[proc_macro_derive(GetArgs, attributes(arg, command))]
 pub fn derive_get_args(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    match model::parse(&input) {
+    match model::parse(&input, model::Keys::Struct) {
         Ok(model) => expand::expand(&input, &model).into(),
+        Err(error) => error.to_compile_error().into(),
+    }
+}
+
+/// Derive macro for an enum of subcommands, used by a `#[command(subcommand)]` field of a struct
+/// deriving `GetArgs`.
+///
+/// Each variant is a subcommand named after the kebab-cased variant name, which
+/// `#[command(name = "...")]` overrides. Variants can be unit variants, variants with named fields
+/// (declared with `#[arg(...)]` as in a `GetArgs` struct) or newtype variants wrapping a struct
+/// deriving `GetArgs`.
+///
+/// See the [subcommands guide](getargs_derive::guide::subcommands) for details.
+#[proc_macro_derive(Subcommand, attributes(arg, command))]
+pub fn derive_subcommand(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    match subcommand::parse(&input) {
+        Ok(variants) => subcommand::expand(&input, &variants).into(),
         Err(error) => error.to_compile_error().into(),
     }
 }

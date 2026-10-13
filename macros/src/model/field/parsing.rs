@@ -9,6 +9,7 @@ pub(super) struct RawParsing {
     allow_hyphen_values: Option<(bool, Span)>,
     allow_negative_numbers: Option<(bool, Span)>,
     last: Option<(bool, Span)>,
+    global: Option<(bool, Span)>,
 }
 
 #[derive(Default)]
@@ -16,6 +17,7 @@ pub(crate) struct Parsing {
     pub(crate) allow_hyphen_values: bool,
     pub(crate) allow_negative_numbers: bool,
     pub(crate) last: bool,
+    pub(crate) global: bool,
     last_span: Option<Span>,
 }
 
@@ -55,6 +57,11 @@ pub(super) fn last(meta: &ParseNestedMeta, raw: &mut RawField) -> syn::Result<()
     set_once(&mut raw.parsing.last, value, meta)
 }
 
+pub(super) fn global(meta: &ParseNestedMeta, raw: &mut RawField) -> syn::Result<()> {
+    let value = parse_bool(meta, "global")?;
+    set_once(&mut raw.parsing.global, value, meta)
+}
+
 fn enabled(setting: Option<(bool, Span)>) -> Option<Span> {
     setting.and_then(|(value, span)| value.then_some(span))
 }
@@ -63,6 +70,14 @@ pub(super) fn build_parsing(raw: RawParsing, kind: &FieldKind, errors: &mut Erro
     let allow_hyphen_values = enabled(raw.allow_hyphen_values);
     let allow_negative_numbers = enabled(raw.allow_negative_numbers);
     let last = enabled(raw.last);
+    let global = enabled(raw.global);
+
+    if let (Some(span), FieldKind::Positional) = (global, kind) {
+        errors.push(syn::Error::new(
+            span,
+            "`global` can only be used on options and flags; positional arguments of a parent are not accepted after its subcommand",
+        ));
+    }
 
     if let Some(span) = allow_hyphen_values {
         match kind {
@@ -98,6 +113,7 @@ pub(super) fn build_parsing(raw: RawParsing, kind: &FieldKind, errors: &mut Erro
         allow_hyphen_values: allow_hyphen_values.is_some(),
         allow_negative_numbers: allow_negative_numbers.is_some(),
         last: last.is_some(),
+        global: global.is_some(),
         last_span: last,
     }
 }

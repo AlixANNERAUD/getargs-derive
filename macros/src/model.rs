@@ -1,17 +1,17 @@
 pub(crate) mod attr;
 mod container;
-mod doc;
+pub(crate) mod doc;
 pub(crate) mod errors;
 mod field;
 mod relations;
-mod types;
+pub(crate) mod types;
 mod validate;
 
-pub(crate) use container::{ContainerModel, Version};
+pub(crate) use container::{ContainerModel, Keys, Version, parse_container, validate_command_name};
 use field::Member;
 pub(crate) use field::{
     Alias, CollectionModel, DefaultValue, FieldKind, FieldModel, FlagAction, FlattenModel,
-    ValueParser,
+    SubcommandModel, ValueParser,
 };
 pub(crate) use relations::resolve_groups;
 
@@ -27,6 +27,7 @@ pub(crate) struct Model {
     pub(crate) container: ContainerModel,
     pub(crate) fields: Vec<FieldModel>,
     pub(crate) flattened: Vec<(usize, FlattenModel)>,
+    pub(crate) subcommand: Option<SubcommandModel>,
 }
 
 impl Model {
@@ -44,7 +45,7 @@ impl Model {
     }
 }
 
-pub(crate) fn parse(input: &DeriveInput) -> syn::Result<Model> {
+pub(crate) fn parse(input: &DeriveInput, keys: Keys) -> syn::Result<Model> {
     let fields = match &input.data {
         Data::Struct(data) => match &data.fields {
             Fields::Named(fields) => &fields.named,
@@ -76,7 +77,7 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<Model> {
     };
 
     let mut errors = Errors::default();
-    let container = match container::parse_container(input) {
+    let container = match container::parse_container(&input.attrs, keys) {
         Ok(container) => Some(container),
         Err(error) => {
             errors.push(error);
@@ -85,12 +86,23 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<Model> {
     };
     let mut models = Vec::new();
     let mut flattened = Vec::new();
+    let mut subcommand: Option<SubcommandModel> = None;
     let mut built = true;
 
     for field in fields {
         match field::build_member(field) {
             Ok(Member::Arg(model)) => models.push(*model),
             Ok(Member::Flatten(model)) => flattened.push((models.len(), *model)),
+            Ok(Member::Subcommand(model)) => match &subcommand {
+                Some(first) => errors.push(syn::Error::new(
+                    model.span,
+                    format!(
+                        "a struct can only have one `#[command(subcommand)]` field, and `{}` already is one",
+                        first.name
+                    ),
+                )),
+                None => subcommand = Some(*model),
+            },
             Err(error) => {
                 built = false;
                 errors.push(error);
@@ -108,6 +120,12 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<Model> {
             errors.push(syn::Error::new(
                 flatten.span,
                 "`#[command(flatten)]` is not supported in structs with type or const parameters",
+            ));
+        }
+        if let Some(subcommand) = &subcommand {
+            errors.push(syn::Error::new(
+                subcommand.span,
+                "`#[command(subcommand)]` is not supported in structs with type or const parameters",
             ));
         }
     }
@@ -135,6 +153,7 @@ pub(crate) fn parse(input: &DeriveInput) -> syn::Result<Model> {
             container,
             fields: models,
             flattened,
+            subcommand,
         }),
         None => Err(errors.0.expect("container errors are recorded")),
     }

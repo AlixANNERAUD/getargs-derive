@@ -1,0 +1,29 @@
+error: a struct can only have one `#[command(subcommand)]` field, and `first` already is one
+  --> tests/ui/subcommand_field.rs:12:15
+   |
+12 |     #[command(subcommand)]
+   |               ^^^^^^^^^^
+
+error: `#[arg(...)]` cannot be combined with `#[command(subcommand)]`; put the attributes on the fields of the subcommand variants
+  --> tests/ui/subcommand_field.rs:18:5
+   |
+18 |     #[arg(short)]
+   |     ^^^^^^^^^^^^^
+
+error: `subcommand` cannot be combined with `flatten`
+  --> tests/ui/subcommand_field.rs:25:15
+   |
+25 |     #[command(subcommand, flatten)]
+   |               ^^^^^^^^^^
+
+error: `subcommand` does not take a value
+  --> tests/ui/subcommand_field.rs:31:15
+   |
+31 |     #[command(subcommand = true)]
+   |               ^^^^^^^^^^
+
+error: `#[command(subcommand)]` is not supported in structs with type or const parameters
+  --> tests/ui/subcommand_field.rs:38:15
+   |
+38 |     #[command(subcommand)]
+   |               ^^^^^^^^^^

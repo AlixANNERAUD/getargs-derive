@@ -1,5 +1,5 @@
-error: unknown `arg` attribute `global`; supported attributes are: `action`, `alias`, `aliases`, `allow_hyphen_values`, `allow_negative_numbers`, `conflicts_with`, `default_value`, `default_value_t`, `default_values`, `display_order`, `env`, `group`, `help`, `help_heading`, `hide`, `last`, `long`, `long_help`, `num_args`, `possible_values`, `required_unless_present`, `requires`, `short`, `short_alias`, `short_aliases`, `value_delimiter`, `value_enum`, `value_name`, `value_parser`, `visible_alias`, `visible_aliases`, `visible_short_alias`, `visible_short_aliases`
+error: unknown `arg` attribute `trailing_var_arg`; supported attributes are: `action`, `alias`, `aliases`, `allow_hyphen_values`, `allow_negative_numbers`, `conflicts_with`, `default_value`, `default_value_t`, `default_values`, `display_order`, `env`, `group`, `global`, `help`, `help_heading`, `hide`, `last`, `long`, `long_help`, `num_args`, `possible_values`, `required_unless_present`, `requires`, `short`, `short_alias`, `short_aliases`, `value_delimiter`, `value_enum`, `value_name`, `value_parser`, `visible_alias`, `visible_aliases`, `visible_short_alias`, `visible_short_aliases`
  --> tests/ui/unknown_key.rs:5:17
   |
-5 |     #[arg(long, global = true)]
-  |                 ^^^^^^
+5 |     #[arg(long, trailing_var_arg = true)]
+  |                 ^^^^^^^^^^^^^^^^

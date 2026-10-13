@@ -1,0 +1,17 @@
+error[E0080]: evaluation panicked: global option `-v` of field `verbose` is also used by a subcommand
+  --> tests/ui/subcommand_global.rs:14:5
+   |
+14 |     verbose: bool,
+   |     ^^^^^^^ evaluation of `_` failed here
+
+error[E0080]: evaluation panicked: global option `--verbose` of field `verbose` is also used by a subcommand
+  --> tests/ui/subcommand_global.rs:14:5
+   |
+14 |     verbose: bool,
+   |     ^^^^^^^ evaluation of `_` failed here
+
+error[E0080]: evaluation panicked: flattened field `inner` has a `#[command(subcommand)]` field, which cannot be flattened
+  --> tests/ui/subcommand_global.rs:29:15
+   |
+29 |     #[command(flatten)]
+   |               ^^^^^^^ evaluation of `_` failed here

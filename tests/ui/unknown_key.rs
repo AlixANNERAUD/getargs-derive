@@ -2,7 +2,7 @@ use getargs_derive::GetArgs;
 
 #[derive(GetArgs)]
 struct Cli {
-    #[arg(long, global = true)]
+    #[arg(long, trailing_var_arg = true)]
     verbose: bool,
 }
 

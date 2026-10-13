@@ -120,7 +120,7 @@ pub(super) fn parse_methods(
         };
     }
 
-    let (lookup, bound, with_env) = if model.flattened.is_empty() {
+    let (lookup, bound, with_env) = if model.flattened.is_empty() && model.subcommand.is_none() {
         (
             quote! { getargs_derive::__private::no_env },
             quote! {},

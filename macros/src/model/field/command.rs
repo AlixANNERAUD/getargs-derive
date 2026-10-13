@@ -3,16 +3,25 @@ use crate::model::errors::Errors;
 use proc_macro2::Span;
 use syn::{Field, Meta, meta::ParseNestedMeta, spanned::Spanned};
 
-const FIELD_COMMAND_KEYS: &[Key<RawCommand>] = &[Key::new("flatten", flatten)];
+const FIELD_COMMAND_KEYS: &[Key<RawCommand>] = &[
+    Key::new("flatten", flatten),
+    Key::new("subcommand", subcommand),
+];
 
 #[derive(Default)]
 pub(super) struct RawCommand {
     pub(super) flatten: Option<Span>,
+    pub(super) subcommand: Option<Span>,
 }
 
 fn flatten(meta: &ParseNestedMeta, raw: &mut RawCommand) -> syn::Result<()> {
     reject_value(meta, "flatten")?;
     set_once(&mut raw.flatten, meta.path.span(), meta)
+}
+
+fn subcommand(meta: &ParseNestedMeta, raw: &mut RawCommand) -> syn::Result<()> {
+    reject_value(meta, "subcommand")?;
+    set_once(&mut raw.subcommand, meta.path.span(), meta)
 }
 
 pub(super) fn parse_command(field: &Field) -> syn::Result<RawCommand> {
@@ -35,6 +44,13 @@ pub(super) fn parse_command(field: &Field) -> syn::Result<RawCommand> {
         if let Err(error) = result {
             errors.push(error);
         }
+    }
+
+    if let (Some(_), Some(span)) = (raw.flatten, raw.subcommand) {
+        errors.push(syn::Error::new(
+            span,
+            "`subcommand` cannot be combined with `flatten`",
+        ));
     }
 
     errors.finish(raw)
