@@ -14,7 +14,7 @@ use syn::{
 pub(crate) enum Kind {
     Unit,
     Named(Vec<Ident>),
-    Newtype(Type),
+    Newtype(Box<Type>),
 }
 
 pub(crate) struct Variant {
@@ -161,7 +161,7 @@ fn build_variant(enum_input: &DeriveInput, variant: &SynVariant) -> syn::Result<
                 }
             };
             let command = Command::take(&mut container);
-            (Kind::Newtype(field.ty.clone()), command, None)
+            (Kind::Newtype(Box::new(field.ty.clone())), command, None)
         }
         Fields::Unnamed(fields) => {
             return Err(syn::Error::new_spanned(

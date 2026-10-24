@@ -35,7 +35,7 @@ fn hidden_struct(input: &DeriveInput) -> TokenStream {
 
 fn variant_type(variant: &Variant) -> Type {
     match (&variant.kind, &variant.args) {
-        (Kind::Newtype(ty), _) => ty.clone(),
+        (Kind::Newtype(ty), _) => (**ty).clone(),
         (_, Some((input, _))) => {
             let name = &input.ident;
             let (_, ty_generics, _) = input.generics.split_for_impl();
