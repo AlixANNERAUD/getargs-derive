@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1](https://github.com/AlixANNERAUD/getargs-derive/compare/v0.1.0...v0.1.1) - 2026-10-24
+
+### Miscellaneous
+
+- set up Dependabot ([#45](https://github.com/AlixANNERAUD/getargs-derive/pull/45))
+- set up mise and Mr Boxington ([#44](https://github.com/AlixANNERAUD/getargs-derive/pull/44))
+
 ## [0.1.0](https://github.com/AlixANNERAUD/getargs-derive/releases/tag/v0.1.0) - 2026-10-13
 
 ### Added

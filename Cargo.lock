@@ -22,7 +22,7 @@ checksum = "084c6b182b01dec54ff12986b9cc8859a9b0d92b074f878c382a4481a070e66e"
 
 [[package]]
 name = "getargs-derive"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "getargs",
  "getargs-derive-macros",
@@ -32,7 +32,7 @@ dependencies = [
 
 [[package]]
 name = "getargs-derive-macros"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proc-macro2",
  "quote",
