@@ -18,9 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: jdx/mise-action@v5
 
-      - uses: taiki-e/install-action@cargo-llvm-cov
+      - uses: jdx/mr-boxington-action@v1
+        with:
+          cache-key-suffix: check
+          github-cache-mode: objects
 
       - name: Format
         run: cargo fmt --all -- --check
@@ -61,10 +64,16 @@ jobs:
 
   msrv:
     runs-on: ubuntu-latest
+    env:
+      MISE_ENV: msrv
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@1.88
+      - uses: jdx/mise-action@v5
+
+      - uses: jdx/mr-boxington-action@v1
+        with:
+          cache-key-suffix: msrv
 
       - name: Test without Features
         run: cargo test --workspace --no-default-features -- --exact --skip ui
@@ -77,7 +86,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: jdx/mise-action@v5
+
+      - uses: jdx/mr-boxington-action@v1
+        with:
+          cache-key-suffix: package
 
       - name: Version consistency
         run: |
